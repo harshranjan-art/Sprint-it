@@ -4,7 +4,6 @@ import {
   Play,
   ChevronDown,
   ChevronUp,
-  ChevronRight,
   Quote,
   Shield,
   Target,
@@ -21,8 +20,6 @@ import {
 import { useAppContext } from '../context/AppContext'
 import { discoverThemes, analyzeGaps, generateRecommendations } from '../services/analysisService'
 
-// ─── Constants ──────────────────────────────────────────────────────────────
-
 const STEPS = [
   { key: 'themes', label: 'Discovering themes...' },
   { key: 'gaps', label: 'Analyzing competitive gaps...' },
@@ -30,10 +27,10 @@ const STEPS = [
 ]
 
 const severityColors = {
-  critical: { border: 'border-l-red-500', bg: 'bg-red-50', text: 'text-red-700' },
-  high: { border: 'border-l-amber', bg: 'bg-amber-50', text: 'text-amber-700' },
-  medium: { border: 'border-l-blue-500', bg: 'bg-blue-50', text: 'text-blue-700' },
-  low: { border: 'border-l-gray-300', bg: 'bg-gray-50', text: 'text-text-secondary' },
+  critical: { border: 'border-l-red-400', bg: 'bg-red-500/10', text: 'text-red-400' },
+  high: { border: 'border-l-amber', bg: 'bg-amber/10', text: 'text-amber' },
+  medium: { border: 'border-l-blue-400', bg: 'bg-blue-400/10', text: 'text-blue-400' },
+  low: { border: 'border-l-white/15', bg: 'bg-white/5', text: 'text-text-secondary' },
 }
 
 const categoryLabels = {
@@ -45,15 +42,13 @@ const categoryLabels = {
 }
 
 const statusDotColors = {
-  strong: 'bg-green-500',
+  strong: 'bg-emerald-400',
   building: 'bg-amber',
-  weak: 'bg-red-500',
-  missing: 'bg-gray-300',
+  weak: 'bg-red-400',
+  missing: 'bg-white/15',
 }
 
 const DEFAULT_WEIGHTS = { userImpact: 25, revenueImpact: 25, effort: 25, strategicAlignment: 25 }
-
-// ─── Helper ─────────────────────────────────────────────────────────────────
 
 function computeScore(rec, w) {
   const totalW = w.userImpact + w.revenueImpact + w.effort + w.strategicAlignment
@@ -68,11 +63,9 @@ function computeScore(rec, w) {
   return Math.round(raw * 10) / 10
 }
 
-// ─── Sub-components ─────────────────────────────────────────────────────────
-
 function ProgressStepper({ currentStep, error }) {
   return (
-    <div className="flex items-center gap-3 mb-6">
+    <div className="flex items-center gap-3 mb-5">
       {STEPS.map((step, i) => {
         const isActive = i === currentStep
         const isDone = i < currentStep
@@ -81,27 +74,27 @@ function ProgressStepper({ currentStep, error }) {
           <div key={step.key} className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
+                className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-semibold transition-colors ${
                   isFailed
-                    ? 'bg-red-100 text-red-600'
+                    ? 'bg-red-500/15 text-red-400'
                     : isDone
-                      ? 'bg-purple text-white'
+                      ? 'bg-purple/20 text-purple border border-purple/30'
                       : isActive
-                        ? 'bg-amber text-white'
-                        : 'bg-gray-100 text-text-secondary'
+                        ? 'bg-amber/20 text-amber border border-amber/30'
+                        : 'bg-white/5 text-text-secondary'
                 }`}
               >
-                {isDone ? '✓' : i + 1}
+                {isDone ? '>' : i + 1}
               </div>
               <span
-                className={`text-sm ${
+                className={`text-[12px] ${
                   isActive ? 'text-text-primary font-medium' : 'text-text-secondary'
                 }`}
               >
                 {step.label}
               </span>
             </div>
-            {i < STEPS.length - 1 && <div className="w-8 h-px bg-border" />}
+            {i < STEPS.length - 1 && <div className="w-6 h-px bg-border" />}
           </div>
         )
       })}
@@ -111,25 +104,25 @@ function ProgressStepper({ currentStep, error }) {
 
 function PulsingBar() {
   return (
-    <div className="w-full h-1 bg-gray-100 rounded-full overflow-hidden mb-6">
-      <div className="h-full w-1/3 bg-purple rounded-full animate-[pulse_1.5s_ease-in-out_infinite]" />
+    <div className="w-full h-0.5 bg-white/5 rounded-full overflow-hidden mb-5">
+      <div className="h-full w-1/3 bg-purple rounded-full animate-[pulse_1.5s_ease-in-out_infinite] shadow-[0_0_8px_rgba(139,124,246,0.4)]" />
     </div>
   )
 }
 
 function Toast({ message, onRetry, onDismiss }) {
   return (
-    <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 mb-6">
-      <AlertTriangle size={18} className="text-red-500 shrink-0" />
-      <p className="text-sm text-red-700 flex-1">{message}</p>
+    <div className="flex items-center gap-3 p-3.5 rounded-lg bg-red-500/10 border border-red-500/20 mb-5">
+      <AlertTriangle size={16} className="text-red-400 shrink-0" />
+      <p className="text-[13px] text-red-400 flex-1">{message}</p>
       <button
         onClick={onRetry}
-        className="flex items-center gap-1.5 text-sm font-medium text-red-700 hover:text-red-800 px-3 py-1.5 rounded-lg bg-red-100 hover:bg-red-200 transition-colors"
+        className="flex items-center gap-1.5 text-[12px] font-medium text-red-400 hover:text-red-300 px-2.5 py-1 rounded-md bg-red-500/15 hover:bg-red-500/20 transition-colors"
       >
-        <RefreshCw size={14} /> Retry
+        <RefreshCw size={12} /> Retry
       </button>
-      <button onClick={onDismiss} className="text-red-400 hover:text-red-600">
-        <X size={16} />
+      <button onClick={onDismiss} className="text-red-500/40 hover:text-red-400 transition-colors">
+        <X size={14} />
       </button>
     </div>
   )
@@ -138,16 +131,16 @@ function Toast({ message, onRetry, onDismiss }) {
 function WeightSlider({ label, value, onChange }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-xs text-text-secondary w-32 shrink-0">{label}</span>
+      <span className="text-[11px] text-text-secondary w-28 shrink-0">{label}</span>
       <input
         type="range"
         min={0}
         max={100}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="flex-1 h-1.5 accent-purple cursor-pointer"
+        className="flex-1 h-1.5 cursor-pointer"
       />
-      <span className="text-xs font-medium text-text-primary w-8 text-right">{value}</span>
+      <span className="text-[11px] font-medium text-text-primary w-6 text-right font-mono">{value}</span>
     </div>
   )
 }
@@ -157,57 +150,55 @@ function ThemeCard({ theme }) {
   const colors = severityColors[theme.severity] || severityColors.low
 
   return (
-    <div className={`bg-bg-card rounded-xl border border-border border-l-4 ${colors.border} p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]`}>
-      <div className="flex items-start justify-between mb-2">
-        <h4 className="text-sm font-semibold text-text-primary leading-snug pr-2">{theme.name}</h4>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${colors.bg} ${colors.text} capitalize`}>
+    <div className={`bg-bg-card rounded-lg border border-border border-l-2 ${colors.border} p-4 card-glow`}>
+      <div className="flex items-start justify-between mb-1.5">
+        <h4 className="text-[13px] font-semibold text-text-primary leading-snug pr-2">{theme.name}</h4>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md ${colors.bg} ${colors.text} capitalize`}>
             {theme.severity}
           </span>
-          <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-light text-purple">
-            {theme.frequency} mentions
+          <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-purple/10 text-purple font-mono">
+            {theme.frequency}
           </span>
         </div>
       </div>
-      <p className="text-xs text-text-secondary leading-relaxed mb-3">{theme.description}</p>
+      <p className="text-[11px] text-text-secondary leading-relaxed mb-2.5">{theme.description}</p>
 
-      <div className="flex flex-wrap items-center gap-1.5 mb-3">
-        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-gray-100 text-text-secondary">
+      <div className="flex flex-wrap items-center gap-1 mb-2.5">
+        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-white/5 text-text-secondary">
           {categoryLabels[theme.category] || theme.category}
         </span>
         {(theme.segments_affected || []).map((seg) => (
-          <span key={seg} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-50 text-text-secondary capitalize">
+          <span key={seg} className="text-[9px] px-1 py-0.5 rounded bg-white/[0.03] text-text-secondary capitalize">
             {seg}
           </span>
         ))}
         {theme.estimated_revenue_impact && (
-          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-            theme.estimated_revenue_impact === 'high' ? 'bg-red-50 text-red-600'
-              : theme.estimated_revenue_impact === 'medium' ? 'bg-amber-50 text-amber-600'
-                : 'bg-gray-50 text-text-secondary'
+          <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md ${
+            theme.estimated_revenue_impact === 'high' ? 'bg-red-500/10 text-red-400'
+              : theme.estimated_revenue_impact === 'medium' ? 'bg-amber/10 text-amber'
+                : 'bg-white/5 text-text-secondary'
           }`}>
-            {theme.estimated_revenue_impact} revenue impact
+            {theme.estimated_revenue_impact} rev impact
           </span>
         )}
       </div>
 
-      {/* Evidence toggle */}
       {theme.representative_quotes?.length > 0 && (
         <div>
           <button
+            data-testid={`theme-evidence-${theme.name}`}
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1 text-xs text-purple font-medium hover:text-purple/80 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-purple font-medium hover:text-purple/80 transition-colors"
           >
-            <Quote size={12} />
-            View Evidence ({theme.representative_quotes.length})
-            {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+            <Quote size={11} />
+            Evidence ({theme.representative_quotes.length})
+            {expanded ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
           </button>
           {expanded && (
-            <div className="mt-2 space-y-2 pl-3 border-l-2 border-purple-light">
+            <div className="mt-1.5 space-y-1.5 pl-2.5 border-l border-purple/20">
               {theme.representative_quotes.map((q, i) => (
-                <p key={i} className="text-xs text-text-secondary italic leading-relaxed">
-                  "{q}"
-                </p>
+                <p key={i} className="text-[11px] text-text-secondary italic leading-relaxed">"{q}"</p>
               ))}
             </div>
           )}
@@ -222,49 +213,49 @@ function GapTable({ gaps, competitors }) {
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full text-[13px]">
         <thead>
           <tr className="border-b border-border">
-            <th className="text-left text-xs font-medium text-text-secondary py-2 pr-4">Capability</th>
-            <th className="text-center text-xs font-medium text-text-secondary py-2 px-3">Sprint It</th>
+            <th className="text-left text-[10px] font-medium text-text-secondary py-2 pr-4 uppercase tracking-wider">Capability</th>
+            <th className="text-center text-[10px] font-medium text-text-secondary py-2 px-3 uppercase tracking-wider">Sprint It</th>
             {competitorNames.map((name) => (
-              <th key={name} className="text-center text-xs font-medium text-text-secondary py-2 px-3">{name}</th>
+              <th key={name} className="text-center text-[10px] font-medium text-text-secondary py-2 px-3 uppercase tracking-wider">{name}</th>
             ))}
-            <th className="text-center text-xs font-medium text-text-secondary py-2 px-3">Opportunity</th>
+            <th className="text-center text-[10px] font-medium text-text-secondary py-2 px-3 uppercase tracking-wider">Opportunity</th>
           </tr>
         </thead>
         <tbody>
           {gaps.map((gap, i) => (
-            <tr key={i} className="border-b border-border last:border-0">
-              <td className="py-3 pr-4">
-                <p className="text-sm font-medium text-text-primary">{gap.area}</p>
-                <p className="text-xs text-text-secondary mt-0.5 leading-snug">{gap.insight}</p>
+            <tr key={i} className="border-b border-border last:border-0 hover:bg-white/[0.01] transition-colors">
+              <td className="py-2.5 pr-4">
+                <p className="text-[13px] font-medium text-text-primary">{gap.area}</p>
+                <p className="text-[11px] text-text-secondary mt-0.5 leading-snug">{gap.insight}</p>
               </td>
-              <td className="text-center py-3 px-3">
+              <td className="text-center py-2.5 px-3">
                 <div className="flex justify-center">
-                  <span className={`w-3 h-3 rounded-full ${statusDotColors[gap.our_status] || 'bg-gray-300'}`}
+                  <span className={`w-2.5 h-2.5 rounded-full ${statusDotColors[gap.our_status] || 'bg-white/15'}`}
                     title={gap.our_status} />
                 </div>
-                <span className="text-[10px] text-text-secondary capitalize">{gap.our_status}</span>
+                <span className="text-[9px] text-text-secondary capitalize">{gap.our_status}</span>
               </td>
               {competitorNames.map((name) => {
                 const comp = (gap.competitors || []).find((c) => c.name === name)
                 const status = comp?.status || 'missing'
                 return (
-                  <td key={name} className="text-center py-3 px-3">
+                  <td key={name} className="text-center py-2.5 px-3">
                     <div className="flex justify-center">
-                      <span className={`w-3 h-3 rounded-full ${statusDotColors[status] || 'bg-gray-300'}`}
+                      <span className={`w-2.5 h-2.5 rounded-full ${statusDotColors[status] || 'bg-white/15'}`}
                         title={status} />
                     </div>
-                    <span className="text-[10px] text-text-secondary capitalize">{status}</span>
+                    <span className="text-[9px] text-text-secondary capitalize">{status}</span>
                   </td>
                 )
               })}
-              <td className="text-center py-3 px-3">
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                  gap.opportunity === 'high' ? 'bg-green-50 text-green-700'
-                    : gap.opportunity === 'medium' ? 'bg-amber-50 text-amber-700'
-                      : 'bg-gray-50 text-text-secondary'
+              <td className="text-center py-2.5 px-3">
+                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md ${
+                  gap.opportunity === 'high' ? 'bg-emerald-500/10 text-emerald-400'
+                    : gap.opportunity === 'medium' ? 'bg-amber/10 text-amber'
+                      : 'bg-white/5 text-text-secondary'
                 }`}>
                   {gap.opportunity}
                 </span>
@@ -280,14 +271,14 @@ function GapTable({ gaps, competitors }) {
 function ScoreBar({ label, value, max = 10 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-text-secondary w-20 shrink-0">{label}</span>
-      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+      <span className="text-[10px] text-text-secondary w-16 shrink-0">{label}</span>
+      <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
         <div
-          className="h-full bg-purple rounded-full transition-all duration-300"
+          className="h-full bg-purple rounded-full transition-all duration-300 shadow-[0_0_4px_rgba(139,124,246,0.3)]"
           style={{ width: `${(value / max) * 100}%` }}
         />
       </div>
-      <span className="text-[10px] font-medium text-text-primary w-5 text-right">{value}</span>
+      <span className="text-[10px] font-medium text-text-primary w-4 text-right font-mono">{value}</span>
     </div>
   )
 }
@@ -296,44 +287,45 @@ function RecommendationRow({ rec, rank, expanded, onToggle }) {
   const scorePercent = Math.min((rec._score / 10) * 100, 100)
 
   return (
-    <div className="bg-bg-card rounded-xl border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+    <div className="bg-bg-card rounded-lg border border-border card-glow overflow-hidden">
       <button
+        data-testid={`rec-row-${rank}`}
         onClick={onToggle}
-        className="w-full flex items-center gap-4 p-4 text-left hover:bg-gray-50/50 transition-colors"
+        className="w-full flex items-center gap-3.5 p-3.5 text-left hover:bg-white/[0.02] transition-colors"
       >
-        <span className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold text-text-secondary shrink-0">
+        <span className="w-6 h-6 rounded-md bg-white/5 flex items-center justify-center text-[11px] font-semibold text-text-secondary shrink-0 font-mono">
           {rank}
         </span>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-text-primary truncate">{rec.feature_name}</p>
-          <p className="text-xs text-text-secondary mt-0.5">{rec.target_segment}</p>
+          <p className="text-[13px] font-semibold text-text-primary truncate">{rec.feature_name}</p>
+          <p className="text-[11px] text-text-secondary mt-0.5">{rec.target_segment}</p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="flex items-center gap-2.5 shrink-0">
+          <div className="w-20 h-1 bg-white/5 rounded-full overflow-hidden">
             <div className="h-full bg-purple rounded-full" style={{ width: `${scorePercent}%` }} />
           </div>
-          <span className="text-sm font-semibold text-purple w-10 text-right">{rec._score}</span>
-          {expanded ? <ChevronUp size={16} className="text-text-secondary" /> : <ChevronDown size={16} className="text-text-secondary" />}
+          <span className="text-[13px] font-semibold text-purple w-8 text-right font-mono">{rec._score}</span>
+          {expanded ? <ChevronUp size={14} className="text-text-secondary" /> : <ChevronDown size={14} className="text-text-secondary" />}
         </div>
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 pt-0 border-t border-border space-y-4">
-          <div className="grid grid-cols-2 gap-4 pt-3">
+        <div className="px-3.5 pb-3.5 pt-0 border-t border-border space-y-3.5">
+          <div className="grid grid-cols-2 gap-3.5 pt-3">
             <div>
-              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1.5">Description</p>
-              <p className="text-sm text-text-primary leading-relaxed">{rec.description}</p>
+              <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Description</p>
+              <p className="text-[12px] text-text-primary/80 leading-relaxed">{rec.description}</p>
             </div>
             <div>
-              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1.5">Rationale</p>
-              <p className="text-sm text-text-primary leading-relaxed">{rec.rationale}</p>
+              <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Rationale</p>
+              <p className="text-[12px] text-text-primary/80 leading-relaxed">{rec.rationale}</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3.5">
             <div>
-              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1.5">Score Breakdown</p>
-              <div className="space-y-1.5">
+              <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Score Breakdown</p>
+              <div className="space-y-1">
                 <ScoreBar label="User Impact" value={rec.user_impact} />
                 <ScoreBar label="Revenue" value={rec.revenue_impact} />
                 <ScoreBar label="Effort" value={rec.effort} />
@@ -341,33 +333,31 @@ function RecommendationRow({ rec, rank, expanded, onToggle }) {
               </div>
             </div>
             <div>
-              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1.5">Competitive Context</p>
-              <p className="text-sm text-text-secondary leading-relaxed">{rec.competitive_context}</p>
+              <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Competitive Context</p>
+              <p className="text-[12px] text-text-secondary leading-relaxed">{rec.competitive_context}</p>
             </div>
           </div>
 
           {(rec.evidence?.length > 0) && (
             <div>
-              <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1.5">Evidence</p>
-              <div className="space-y-1 pl-3 border-l-2 border-purple-light">
+              <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Evidence</p>
+              <div className="space-y-0.5 pl-2.5 border-l border-purple/20">
                 {rec.evidence.map((e, i) => (
-                  <p key={i} className="text-xs text-text-secondary italic">"{e}"</p>
+                  <p key={i} className="text-[11px] text-text-secondary italic">"{e}"</p>
                 ))}
               </div>
             </div>
           )}
 
-          <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-            <p className="text-xs font-medium text-red-700 mb-0.5">Risk if Delayed</p>
-            <p className="text-xs text-red-600 leading-relaxed">{rec.risk_if_delayed}</p>
+          <div className="p-2.5 rounded-lg bg-red-500/5 border border-red-500/10">
+            <p className="text-[10px] font-medium text-red-400 mb-0.5">Risk if Delayed</p>
+            <p className="text-[11px] text-red-400/80 leading-relaxed">{rec.risk_if_delayed}</p>
           </div>
         </div>
       )}
     </div>
   )
 }
-
-// ─── Main Page ──────────────────────────────────────────────────────────────
 
 export default function Analysis() {
   const {
@@ -390,7 +380,6 @@ export default function Analysis() {
   const hasData = feedbackData.length > 0
   const hasResults = analysisResults.themes?.length > 0
 
-  // Recalculate scores client-side when weights change
   const sortedRecommendations = useMemo(() => {
     if (!analysisResults.recommendations?.length) return []
     return analysisResults.recommendations
@@ -405,7 +394,6 @@ export default function Analysis() {
     setCurrentStep(0)
 
     try {
-      // Step 1: Theme Discovery
       await addEvent('analysis_started', {
         entryCount: feedbackData.length,
         competitorCount: competitorData.length,
@@ -426,7 +414,6 @@ export default function Analysis() {
         criticalCount,
       }, `Discovered ${themes.length} themes (${criticalCount} critical)`)
 
-      // Step 2: Competitive Gap Analysis
       setCurrentStep(1)
 
       const gapResult = await analyzeGaps(themes, competitorData)
@@ -442,7 +429,6 @@ export default function Analysis() {
         },
       })
 
-      // Step 3: Recommendations
       setCurrentStep(2)
 
       const recResult = await generateRecommendations(
@@ -485,69 +471,69 @@ export default function Analysis() {
 
   if (!hasData) {
     return (
-      <div className="bg-bg-card rounded-2xl border border-border p-12 shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-center">
-        <Target size={40} className="mx-auto mb-4 text-text-secondary/30" />
-        <h2 className="text-lg font-semibold mb-2">No Data to Analyze</h2>
-        <p className="text-sm text-text-secondary mb-5">
+      <div className="bg-bg-card rounded-xl border border-border p-10 text-center">
+        <Target size={36} className="mx-auto mb-3 text-text-secondary/15" />
+        <h2 className="text-base font-semibold mb-1.5 text-text-primary">No Data to Analyze</h2>
+        <p className="text-[13px] text-text-secondary mb-4">
           Head to the Ingest Data page to load feedback entries first.
         </p>
         <button
+          data-testid="goto-ingest-btn"
           onClick={() => navigate('/ingest')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple text-white text-sm font-medium hover:bg-purple/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple text-white text-[13px] font-medium hover:bg-purple/90 transition-colors glow-btn"
         >
-          Go to Ingest Data <ArrowRight size={16} />
+          Go to Ingest Data <ArrowRight size={14} />
         </button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* ── Control Panel ── */}
-      <div className="bg-bg-card rounded-2xl border border-border p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-        <div className="flex items-center justify-between mb-4">
+    <div data-testid="analysis-page" className="space-y-5">
+      <div className="bg-bg-card rounded-xl border border-border p-5 card-glow">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">AI Analysis Engine</h2>
-            <p className="text-sm text-text-secondary mt-0.5">
-              {feedbackData.length} feedback entries + {competitorData.length} competitors ready
+            <h2 className="text-base font-semibold text-text-primary">AI Analysis Engine</h2>
+            <p className="text-[13px] text-text-secondary mt-0.5">
+              <span className="font-mono">{feedbackData.length}</span> feedback entries + <span className="font-mono">{competitorData.length}</span> competitors ready
             </p>
           </div>
           <button
+            data-testid="run-analysis-btn"
             onClick={runAnalysis}
             disabled={running}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple text-white text-sm font-semibold hover:bg-purple/90 transition-colors disabled:opacity-50 shadow-[0_2px_8px_rgba(124,107,240,0.3)]"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-purple text-white text-[13px] font-semibold hover:bg-purple/90 transition-all disabled:opacity-40 glow-btn"
           >
             {running ? (
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={16} className="animate-spin" />
             ) : (
-              <Play size={18} />
+              <Play size={16} />
             )}
             {running ? 'Analyzing...' : 'Run Full Analysis'}
           </button>
         </div>
 
-        {/* Config toggle */}
         <button
+          data-testid="config-toggle"
           onClick={() => setConfigOpen(!configOpen)}
-          className="flex items-center gap-1.5 text-xs text-text-secondary font-medium hover:text-purple transition-colors"
+          className="flex items-center gap-1.5 text-[11px] text-text-secondary font-medium hover:text-purple transition-colors"
         >
-          <SlidersHorizontal size={14} />
+          <SlidersHorizontal size={12} />
           Analysis Configuration
-          {configOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {configOpen ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         </button>
 
         {configOpen && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-xl space-y-3">
-            <p className="text-xs text-text-secondary mb-1">Priority weight configuration — these affect recommendation scoring</p>
+          <div className="mt-3 p-3.5 bg-white/[0.02] rounded-lg border border-border space-y-2.5">
+            <p className="text-[11px] text-text-secondary mb-1">Priority weight configuration</p>
             <WeightSlider label="User Impact" value={weights.userImpact} onChange={handleWeightChange('userImpact')} />
             <WeightSlider label="Revenue Impact" value={weights.revenueImpact} onChange={handleWeightChange('revenueImpact')} />
             <WeightSlider label="Effort (inverse)" value={weights.effort} onChange={handleWeightChange('effort')} />
-            <WeightSlider label="Strategic Alignment" value={weights.strategicAlignment} onChange={handleWeightChange('strategicAlignment')} />
+            <WeightSlider label="Strategic Align" value={weights.strategicAlignment} onChange={handleWeightChange('strategicAlignment')} />
           </div>
         )}
       </div>
 
-      {/* ── Progress / Error ── */}
       {running && (
         <>
           <ProgressStepper currentStep={currentStep} error={error} />
@@ -563,15 +549,14 @@ export default function Analysis() {
         />
       )}
 
-      {/* ── Results: Themes ── */}
       {analysisResults.themes?.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-base font-semibold text-text-primary">
-              Discovered {analysisResults.themes.length} themes across {feedbackData.length} feedback entries
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[13px] font-semibold text-text-primary">
+              Discovered <span className="text-purple font-mono">{analysisResults.themes.length}</span> themes across <span className="font-mono">{feedbackData.length}</span> entries
             </h2>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
             {analysisResults.themes.map((theme, i) => (
               <ThemeCard key={i} theme={theme} />
             ))}
@@ -579,82 +564,75 @@ export default function Analysis() {
         </div>
       )}
 
-      {/* ── Results: Gap Analysis ── */}
       {analysisResults.gaps?.length > 0 && (
-        <div className="space-y-4">
-          {/* Market Position */}
+        <div className="space-y-3">
           {analysisResults.marketPosition && (
-            <div className="bg-bg-card rounded-2xl border-2 border-amber p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield size={18} className="text-amber" />
-                <h3 className="text-sm font-semibold text-text-primary">Market Position</h3>
+            <div className="bg-bg-card rounded-xl border border-amber/20 p-4 card-glow">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Shield size={16} className="text-amber" />
+                <h3 className="text-[13px] font-semibold text-text-primary">Market Position</h3>
               </div>
-              <p className="text-sm text-text-primary leading-relaxed">{analysisResults.marketPosition}</p>
+              <p className="text-[13px] text-text-primary/80 leading-relaxed">{analysisResults.marketPosition}</p>
             </div>
           )}
 
-          {/* Gap Table */}
-          <div className="bg-bg-card rounded-2xl border border-border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <h3 className="text-sm font-semibold text-text-primary mb-4">Competitive Gap Analysis</h3>
+          <div className="bg-bg-card rounded-xl border border-border p-4 card-glow">
+            <h3 className="text-[13px] font-semibold text-text-primary mb-3">Competitive Gap Analysis</h3>
             <GapTable gaps={analysisResults.gaps} competitors={competitorData} />
           </div>
 
-          {/* Threat & Opportunity */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 max-md:grid-cols-1 gap-3">
             {analysisResults.biggestThreat && (
-              <div className="bg-bg-card rounded-xl border border-red-200 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle size={16} className="text-red-500" />
-                  <h4 className="text-xs font-semibold text-red-700 uppercase tracking-wider">Biggest Threat</h4>
+              <div className="bg-bg-card rounded-lg border border-red-500/15 p-3.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <AlertTriangle size={14} className="text-red-400" />
+                  <h4 className="text-[10px] font-semibold text-red-400 uppercase tracking-widest">Biggest Threat</h4>
                 </div>
-                <p className="text-sm text-text-primary leading-relaxed">{analysisResults.biggestThreat}</p>
+                <p className="text-[13px] text-text-primary/80 leading-relaxed">{analysisResults.biggestThreat}</p>
               </div>
             )}
             {analysisResults.biggestOpportunity && (
-              <div className="bg-bg-card rounded-xl border border-green-200 p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Lightbulb size={16} className="text-green-600" />
-                  <h4 className="text-xs font-semibold text-green-700 uppercase tracking-wider">Biggest Opportunity</h4>
+              <div className="bg-bg-card rounded-lg border border-emerald-500/15 p-3.5">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Lightbulb size={14} className="text-emerald-400" />
+                  <h4 className="text-[10px] font-semibold text-emerald-400 uppercase tracking-widest">Biggest Opportunity</h4>
                 </div>
-                <p className="text-sm text-text-primary leading-relaxed">{analysisResults.biggestOpportunity}</p>
+                <p className="text-[13px] text-text-primary/80 leading-relaxed">{analysisResults.biggestOpportunity}</p>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* ── Results: Recommendations ── */}
       {sortedRecommendations.length > 0 && (
-        <div className="space-y-4">
-          {/* Executive Summary */}
+        <div className="space-y-3">
           {analysisResults.summary && (
-            <div className="bg-purple rounded-2xl p-6 shadow-[0_2px_8px_rgba(124,107,240,0.3)]">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles size={18} className="text-white/80" />
-                <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Strategic Recommendation</h3>
+            <div className="bg-purple/10 border border-purple/20 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Sparkles size={16} className="text-purple" />
+                <h3 className="text-[10px] font-semibold text-purple uppercase tracking-widest">Strategic Recommendation</h3>
               </div>
-              <p className="text-base text-white leading-relaxed font-medium">{analysisResults.summary}</p>
+              <p className="text-[14px] text-text-primary leading-relaxed font-medium">{analysisResults.summary}</p>
             </div>
           )}
 
-          {/* #1 Hero Card */}
           {sortedRecommendations[0] && (
-            <div className="bg-bg-card rounded-2xl border-2 border-purple p-6 shadow-[0_2px_8px_rgba(124,107,240,0.1)]">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-8 h-8 rounded-full bg-purple flex items-center justify-center text-sm font-bold text-white">1</span>
+            <div className="bg-bg-card rounded-xl border-2 border-purple/30 p-5 glow-btn">
+              <div className="flex items-center gap-2 mb-2.5">
+                <span className="w-7 h-7 rounded-md bg-purple/20 border border-purple/30 flex items-center justify-center text-[12px] font-bold text-purple font-mono">1</span>
                 <div>
-                  <h3 className="text-lg font-semibold text-text-primary">{sortedRecommendations[0].feature_name}</h3>
-                  <p className="text-xs text-text-secondary">Top priority — Score: {sortedRecommendations[0]._score}/10</p>
+                  <h3 className="text-base font-semibold text-text-primary">{sortedRecommendations[0].feature_name}</h3>
+                  <p className="text-[11px] text-text-secondary">Top priority -- Score: <span className="text-purple font-mono">{sortedRecommendations[0]._score}</span>/10</p>
                 </div>
               </div>
-              <p className="text-sm text-text-primary leading-relaxed mb-4">{sortedRecommendations[0].description}</p>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <p className="text-[13px] text-text-primary/80 leading-relaxed mb-3">{sortedRecommendations[0].description}</p>
+              <div className="grid grid-cols-2 gap-3 mb-3">
                 <div>
-                  <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Rationale</p>
-                  <p className="text-sm text-text-primary leading-relaxed">{sortedRecommendations[0].rationale}</p>
+                  <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Rationale</p>
+                  <p className="text-[12px] text-text-primary/80 leading-relaxed">{sortedRecommendations[0].rationale}</p>
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-xs font-medium text-text-secondary uppercase tracking-wider mb-1">Score Breakdown</p>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-medium text-text-secondary/60 uppercase tracking-widest mb-1">Score Breakdown</p>
                   <ScoreBar label="User Impact" value={sortedRecommendations[0].user_impact} />
                   <ScoreBar label="Revenue" value={sortedRecommendations[0].revenue_impact} />
                   <ScoreBar label="Effort" value={sortedRecommendations[0].effort} />
@@ -662,38 +640,36 @@ export default function Analysis() {
                 </div>
               </div>
               {sortedRecommendations[0].evidence?.length > 0 && (
-                <div className="pl-3 border-l-2 border-purple-light mb-4">
+                <div className="pl-2.5 border-l border-purple/20 mb-3">
                   {sortedRecommendations[0].evidence.map((e, i) => (
-                    <p key={i} className="text-xs text-text-secondary italic mb-1">"{e}"</p>
+                    <p key={i} className="text-[11px] text-text-secondary italic mb-0.5">"{e}"</p>
                   ))}
                 </div>
               )}
-              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                <p className="text-xs font-medium text-red-700 mb-0.5">Risk if Delayed</p>
-                <p className="text-xs text-red-600">{sortedRecommendations[0].risk_if_delayed}</p>
+              <div className="p-2.5 rounded-lg bg-red-500/5 border border-red-500/10">
+                <p className="text-[10px] font-medium text-red-400 mb-0.5">Risk if Delayed</p>
+                <p className="text-[11px] text-red-400/80">{sortedRecommendations[0].risk_if_delayed}</p>
               </div>
             </div>
           )}
 
-          {/* Weight Sliders (live re-sort) */}
-          <div className="bg-bg-card rounded-2xl border border-border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center gap-2 mb-3">
-              <SlidersHorizontal size={16} className="text-purple" />
-              <h3 className="text-sm font-semibold text-text-primary">Adjust Priority Weights</h3>
-              <span className="text-xs text-text-secondary">(re-sorts in real time)</span>
+          <div className="bg-bg-card rounded-xl border border-border p-4 card-glow">
+            <div className="flex items-center gap-2 mb-2.5">
+              <SlidersHorizontal size={14} className="text-purple" />
+              <h3 className="text-[13px] font-semibold text-text-primary">Adjust Priority Weights</h3>
+              <span className="text-[10px] text-text-secondary">(re-sorts live)</span>
             </div>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-2">
               <WeightSlider label="User Impact" value={weights.userImpact} onChange={handleWeightChange('userImpact')} />
               <WeightSlider label="Revenue Impact" value={weights.revenueImpact} onChange={handleWeightChange('revenueImpact')} />
               <WeightSlider label="Effort (inverse)" value={weights.effort} onChange={handleWeightChange('effort')} />
-              <WeightSlider label="Strategic Alignment" value={weights.strategicAlignment} onChange={handleWeightChange('strategicAlignment')} />
+              <WeightSlider label="Strategic Align" value={weights.strategicAlignment} onChange={handleWeightChange('strategicAlignment')} />
             </div>
           </div>
 
-          {/* Remaining Recommendations */}
           {sortedRecommendations.length > 1 && (
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold text-text-primary">All Recommendations</h3>
+            <div className="space-y-2.5">
+              <h3 className="text-[13px] font-semibold text-text-primary">All Recommendations</h3>
               {sortedRecommendations.slice(1).map((rec, i) => (
                 <RecommendationRow
                   key={rec.feature_name}
@@ -708,18 +684,18 @@ export default function Analysis() {
             </div>
           )}
 
-          {/* Generate Documents CTA */}
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end pt-1">
             <button
+              data-testid="goto-documents-btn"
               onClick={() => {
                 updatePipelineStatus('docs', 'active')
                 navigate('/documents')
               }}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-purple text-white text-sm font-semibold hover:bg-purple/90 transition-colors shadow-[0_2px_8px_rgba(124,107,240,0.3)]"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-purple text-white text-[13px] font-semibold hover:bg-purple/90 transition-all glow-btn"
             >
-              <FileText size={18} />
+              <FileText size={16} />
               Generate Documents
-              <ArrowRight size={16} />
+              <ArrowRight size={14} />
             </button>
           </div>
         </div>

@@ -13,56 +13,51 @@ export default function PipelineOverlay({ step, elapsed, error }) {
   const progressPct = ((step + 1) / STEP_LABELS.length) * 100
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl border border-border shadow-2xl p-8 w-full max-w-md mx-4 animate-[slideUp_0.3s_ease-out]">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <div data-testid="pipeline-overlay" className="bg-bg-card rounded-xl border border-border shadow-2xl p-7 w-full max-w-md mx-4 animate-[slideUp_0.3s_ease-out]">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full bg-purple flex items-center justify-center">
-            <Loader2 size={20} className="text-white animate-spin" />
+          <div className="w-9 h-9 rounded-lg bg-purple/20 border border-purple/30 flex items-center justify-center">
+            <Loader2 size={18} className="text-purple animate-spin" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-text-primary">Running Full Pipeline</h3>
-            <p className="text-xs text-text-secondary">
-              Step {Math.min(step + 1, STEP_LABELS.length)} of {STEP_LABELS.length}
+            <h3 className="text-sm font-semibold text-text-primary">Running Full Pipeline</h3>
+            <p className="text-[11px] text-text-secondary font-mono">
+              Step {Math.min(step + 1, STEP_LABELS.length)} / {STEP_LABELS.length}
             </p>
           </div>
         </div>
 
-        {/* Current step */}
-        <p className="text-sm font-medium text-purple mb-4">
+        <p className="text-[13px] font-medium text-purple mb-4">
           {error ? 'Pipeline error' : STEP_LABELS[step] || 'Finishing up...'}
         </p>
 
-        {/* Progress bar */}
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+        <div className="h-1 bg-white/5 rounded-full overflow-hidden mb-3">
           <div
-            className="h-full bg-purple rounded-full transition-all duration-700 ease-out"
-            style={{ width: `${error ? progressPct : progressPct}%` }}
+            className="h-full bg-purple rounded-full transition-all duration-700 ease-out shadow-[0_0_8px_rgba(139,124,246,0.4)]"
+            style={{ width: `${progressPct}%` }}
           />
         </div>
 
-        {/* Step indicators */}
         <div className="flex justify-between mb-4">
           {STEP_LABELS.map((_, i) => (
             <div
               key={i}
-              className={`w-2 h-2 rounded-full transition-colors ${
-                i < step ? 'bg-purple' : i === step ? 'bg-amber' : 'bg-gray-200'
+              className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                i < step ? 'bg-purple shadow-[0_0_4px_rgba(139,124,246,0.5)]' : i === step ? 'bg-amber shadow-[0_0_4px_rgba(251,191,36,0.5)]' : 'bg-white/8'
               }`}
             />
           ))}
         </div>
 
-        {/* Elapsed time */}
         <div className="text-center">
-          <span className="text-xs text-text-secondary">
-            Elapsed: {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
+          <span className="text-[11px] text-text-secondary font-mono">
+            {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
           </span>
         </div>
 
-        {/* Error */}
         {error && (
-          <div className="mt-4 p-3 rounded-lg bg-red-50 border border-red-100">
-            <p className="text-xs text-red-700">{error}</p>
+          <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <p className="text-[12px] text-red-400">{error}</p>
           </div>
         )}
       </div>

@@ -1,15 +1,18 @@
 @import "tailwindcss";
 
 @theme {
-  --color-purple: #7C6BF0;
-  --color-purple-light: rgba(124, 107, 240, 0.1);
-  --color-amber: #F5B731;
-  --color-bg-main: #FAFAFA;
-  --color-bg-card: #FFFFFF;
-  --color-text-primary: #1A1A2E;
-  --color-text-secondary: #6B7280;
-  --color-border: #E5E7EB;
-  --font-sans: 'Inter', sans-serif;
+  --color-purple: #8B7CF6;
+  --color-purple-light: rgba(139, 124, 246, 0.08);
+  --color-amber: #FBBF24;
+  --color-bg-main: #09090B;
+  --color-bg-card: #111116;
+  --color-bg-elevated: #191920;
+  --color-surface: #0E0E12;
+  --color-text-primary: #E4E4E8;
+  --color-text-secondary: #6B6B76;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --font-sans: 'Outfit', sans-serif;
+  --font-mono: 'Space Mono', monospace;
 }
 
 body {
@@ -21,35 +24,34 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.08) transparent;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+::selection {
+  background: rgba(139, 124, 246, 0.3);
+  color: #fff;
+}
+
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes pageEnter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes shimmer {
@@ -62,18 +64,84 @@ body {
   50% { transform: translateX(300%); }
 }
 
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+@keyframes borderGlow {
+  0%, 100% { border-color: rgba(139, 124, 246, 0.08); }
+  50% { border-color: rgba(139, 124, 246, 0.2); }
+}
+
 .page-enter {
-  animation: pageEnter 0.2s ease-out;
+  animation: pageEnter 0.25s ease-out;
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 8px;
 }
 
 .stagger-1 { animation-delay: 0ms; }
-.stagger-2 { animation-delay: 50ms; }
-.stagger-3 { animation-delay: 100ms; }
-.stagger-4 { animation-delay: 150ms; }
+.stagger-2 { animation-delay: 60ms; }
+.stagger-3 { animation-delay: 120ms; }
+.stagger-4 { animation-delay: 180ms; }
+
+.glow-btn {
+  box-shadow: 0 0 16px rgba(139, 124, 246, 0.2), 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.glow-btn:hover {
+  box-shadow: 0 0 24px rgba(139, 124, 246, 0.3), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.card-glow {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-glow:hover {
+  border-color: rgba(139, 124, 246, 0.1);
+  box-shadow: 0 0 20px rgba(139, 124, 246, 0.04);
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  height: 6px;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  background: rgba(255, 255, 255, 0.06);
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #8B7CF6;
+  margin-top: -5px;
+  box-shadow: 0 0 8px rgba(139, 124, 246, 0.4);
+}
+
+input[type="range"]::-moz-range-track {
+  background: rgba(255, 255, 255, 0.06);
+  height: 4px;
+  border-radius: 2px;
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 14px;
+  width: 14px;
+  border-radius: 50%;
+  background: #8B7CF6;
+  border: none;
+  box-shadow: 0 0 8px rgba(139, 124, 246, 0.4);
+}

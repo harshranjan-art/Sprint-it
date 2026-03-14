@@ -10,9 +10,9 @@ const iconMap = {
 }
 
 const styleMap = {
-  success: 'bg-white border-green-200 text-green-700',
-  error: 'bg-white border-red-200 text-red-700',
-  info: 'bg-white border-purple/20 text-purple',
+  success: 'bg-bg-card border-emerald-500/20 text-emerald-400',
+  error: 'bg-bg-card border-red-500/20 text-red-400',
+  info: 'bg-bg-card border-purple/20 text-purple',
 }
 
 let toastId = 0
@@ -38,22 +38,23 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ addToast, removeToast }}>
       {children}
-      {/* Toast container — bottom right */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
         {toasts.map((toast) => {
           const Icon = iconMap[toast.type] || Info
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-lg animate-[slideUp_0.3s_ease-out] ${styleMap[toast.type] || styleMap.info}`}
+              data-testid={`toast-${toast.type}`}
+              className={`pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-lg border shadow-[0_4px_20px_rgba(0,0,0,0.4)] animate-[slideUp_0.3s_ease-out] ${styleMap[toast.type] || styleMap.info}`}
             >
-              <Icon size={16} className="shrink-0" />
-              <span className="text-sm font-medium">{toast.message}</span>
+              <Icon size={14} className="shrink-0" />
+              <span className="text-[13px] font-medium">{toast.message}</span>
               <button
+                data-testid="toast-dismiss"
                 onClick={() => removeToast(toast.id)}
-                className="text-current/40 hover:text-current/70 ml-1"
+                className="text-white/20 hover:text-white/50 ml-1 transition-colors"
               >
-                <X size={14} />
+                <X size={12} />
               </button>
             </div>
           )

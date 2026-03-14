@@ -11,78 +11,71 @@ import {
   ChevronUp,
   ArrowRight,
   X,
-  RefreshCw,
   Target,
 } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { engineers as initialEngineers } from '../data/mockTeam'
 import { autoAssign } from '../services/assignmentService'
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
 function getInitials(name) {
   return name.split(' ').map((n) => n[0]).join('').toUpperCase()
 }
 
 function loadColor(pct) {
-  if (pct >= 75) return 'bg-red-500'
+  if (pct >= 75) return 'bg-red-400'
   if (pct >= 50) return 'bg-amber'
-  return 'bg-green-500'
+  return 'bg-emerald-400'
 }
 
 function loadTextColor(pct) {
-  if (pct >= 75) return 'text-red-600'
-  if (pct >= 50) return 'text-amber-600'
-  return 'text-green-600'
+  if (pct >= 75) return 'text-red-400'
+  if (pct >= 50) return 'text-amber'
+  return 'text-emerald-400'
 }
 
 const priorityStyles = {
-  urgent: 'bg-red-100 text-red-700',
-  high: 'bg-amber-100 text-amber-700',
-  medium: 'bg-blue-100 text-blue-700',
-  low: 'bg-gray-100 text-text-secondary',
+  urgent: 'bg-red-500/15 text-red-400',
+  high: 'bg-amber/15 text-amber',
+  medium: 'bg-blue-400/15 text-blue-400',
+  low: 'bg-white/5 text-text-secondary',
 }
-
-// ─── Engineer Card ──────────────────────────────────────────────────────────
 
 function EngineerCard({ eng, highlight }) {
   const loadPct = Math.min(eng.load, eng.max_capacity)
 
   return (
-    <div className={`bg-bg-card rounded-2xl border p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] transition-all ${
-      highlight ? 'border-purple ring-2 ring-purple/10' : 'border-border'
+    <div data-testid={`engineer-card-${eng.id}`} className={`bg-bg-card rounded-lg border p-4 card-glow transition-all ${
+      highlight ? 'border-purple/30 shadow-[0_0_16px_rgba(139,124,246,0.06)]' : 'border-border'
     }`}>
-      <div className="flex items-center gap-3 mb-3">
+      <div className="flex items-center gap-2.5 mb-2.5">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+          className="w-8 h-8 rounded-md flex items-center justify-center text-[11px] font-bold text-white shrink-0"
           style={{ backgroundColor: eng.avatar_color }}
         >
           {getInitials(eng.name)}
         </div>
         <div className="min-w-0">
-          <h4 className="text-sm font-semibold text-text-primary truncate">{eng.name}</h4>
-          <p className="text-xs text-text-secondary">{eng.role}</p>
+          <h4 className="text-[13px] font-semibold text-text-primary truncate">{eng.name}</h4>
+          <p className="text-[11px] text-text-secondary">{eng.role}</p>
         </div>
       </div>
 
-      {/* Skills */}
-      <div className="flex flex-wrap gap-1 mb-3">
+      <div className="flex flex-wrap gap-1 mb-2.5">
         {eng.skills.map((s) => (
-          <span key={s} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-light text-purple">
+          <span key={s} className="text-[9px] font-medium px-1.5 py-0.5 rounded bg-purple/10 text-purple">
             {s}
           </span>
         ))}
       </div>
 
-      {/* Load bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
+      <div className="mb-2.5">
+        <div className="flex items-center justify-between mb-0.5">
           <span className="text-[10px] text-text-secondary">Workload</span>
-          <span className={`text-[10px] font-semibold ${loadTextColor(loadPct)}`}>
-            {loadPct}% loaded
+          <span className={`text-[10px] font-semibold font-mono ${loadTextColor(loadPct)}`}>
+            {loadPct}%
           </span>
         </div>
-        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="h-1 bg-white/5 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-500 ${loadColor(loadPct)}`}
             style={{ width: `${loadPct}%` }}
@@ -90,13 +83,12 @@ function EngineerCard({ eng, highlight }) {
         </div>
       </div>
 
-      {/* Current tasks */}
       {eng.current_tasks.length > 0 && (
         <div>
-          <p className="text-[10px] text-text-secondary uppercase tracking-wider mb-1">Current Tasks</p>
+          <p className="text-[9px] text-text-secondary/60 uppercase tracking-widest mb-0.5">Current Tasks</p>
           <div className="space-y-0.5">
             {eng.current_tasks.map((t) => (
-              <p key={t} className="text-xs text-text-secondary truncate">• {t}</p>
+              <p key={t} className="text-[11px] text-text-secondary truncate">- {t}</p>
             ))}
           </div>
         </div>
@@ -104,8 +96,6 @@ function EngineerCard({ eng, highlight }) {
     </div>
   )
 }
-
-// ─── Feature Assignment Card ────────────────────────────────────────────────
 
 function FeatureRow({ rec, assignment, loading, onAssign }) {
   const [expanded, setExpanded] = useState(false)
@@ -121,173 +111,169 @@ function FeatureRow({ rec, assignment, loading, onAssign }) {
   }
 
   return (
-    <div className="bg-bg-card rounded-2xl border border-border shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center gap-4 p-5">
-        <span className="w-7 h-7 rounded-full bg-purple flex items-center justify-center text-xs font-bold text-white shrink-0">
+    <div data-testid={`feature-row-${rec.feature_name}`} className="bg-bg-card rounded-xl border border-border card-glow overflow-hidden">
+      <div className="flex items-center gap-3.5 p-4">
+        <span className="w-6 h-6 rounded-md bg-purple/20 border border-purple/30 flex items-center justify-center text-[11px] font-bold text-purple shrink-0 font-mono">
           {rec.rank}
         </span>
         <div className="flex-1 min-w-0">
-          <h4 className="text-sm font-semibold text-text-primary truncate">{rec.feature_name}</h4>
-          <p className="text-xs text-text-secondary mt-0.5">{rec.target_segment} · Score: {rec.priority_score || rec._score || '—'}</p>
+          <h4 className="text-[13px] font-semibold text-text-primary truncate">{rec.feature_name}</h4>
+          <p className="text-[11px] text-text-secondary mt-0.5">{rec.target_segment} -- Score: <span className="font-mono">{rec.priority_score || rec._score || '--'}</span></p>
         </div>
         {!assignment ? (
           <button
+            data-testid={`auto-assign-${rec.feature_name}`}
             onClick={onAssign}
             disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-purple text-white text-sm font-medium hover:bg-purple/90 transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-purple text-white text-[12px] font-medium hover:bg-purple/90 transition-colors disabled:opacity-40 shrink-0 glow-btn"
           >
             {loading ? (
-              <Loader2 size={14} className="animate-spin" />
+              <Loader2 size={13} className="animate-spin" />
             ) : (
-              <Sparkles size={14} />
+              <Sparkles size={13} />
             )}
             {loading ? 'Assigning...' : 'Auto-Assign'}
           </button>
         ) : (
           <button
+            data-testid={`view-assignment-${rec.feature_name}`}
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1.5 text-sm font-medium text-purple hover:text-purple/80 transition-colors"
+            className="flex items-center gap-1 text-[12px] font-medium text-purple hover:text-purple/80 transition-colors"
           >
             {expanded ? 'Collapse' : 'View Assignment'}
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
           </button>
         )}
       </div>
 
-      {/* Expanded assignment details */}
       {assignment && expanded && (
-        <div className="border-t border-border p-5 space-y-5">
-          {/* Assignees */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Primary */}
-            <div className="p-4 rounded-xl bg-purple-light/50 border border-purple/10">
-              <div className="flex items-center gap-2 mb-2">
+        <div className="border-t border-border p-4 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-purple/5 border border-purple/10">
+              <div className="flex items-center gap-2 mb-1.5">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                  className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-white"
                   style={{ backgroundColor: getEngineerColor(assignment.primary_assignee?.id) }}
                 >
                   {getInitials(assignment.primary_assignee?.name || '??')}
                 </div>
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold text-text-primary">{assignment.primary_assignee?.name}</span>
-                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-purple text-white">Primary</span>
+                    <span className="text-[13px] font-semibold text-text-primary">{assignment.primary_assignee?.name}</span>
+                    <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-purple/20 text-purple">Primary</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-text-secondary leading-relaxed">{assignment.primary_assignee?.reason}</p>
+              <p className="text-[11px] text-text-secondary leading-relaxed">{assignment.primary_assignee?.reason}</p>
             </div>
 
-            {/* Support */}
             {assignment.supporting_engineer && (
-              <div className="p-4 rounded-xl bg-gray-50 border border-border">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="p-3 rounded-lg bg-white/[0.02] border border-border">
+                <div className="flex items-center gap-2 mb-1.5">
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                    className="w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold text-white"
                     style={{ backgroundColor: getEngineerColor(assignment.supporting_engineer?.id) }}
                   >
                     {getInitials(assignment.supporting_engineer?.name || '??')}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-semibold text-text-primary">{assignment.supporting_engineer?.name}</span>
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-gray-200 text-text-secondary">Support</span>
+                      <span className="text-[13px] font-semibold text-text-primary">{assignment.supporting_engineer?.name}</span>
+                      <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-white/8 text-text-secondary">Support</span>
                     </div>
                   </div>
                 </div>
-                <p className="text-xs text-text-secondary leading-relaxed">{assignment.supporting_engineer?.reason}</p>
+                <p className="text-[11px] text-text-secondary leading-relaxed">{assignment.supporting_engineer?.reason}</p>
               </div>
             )}
           </div>
 
-          {/* Estimates */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             <div>
-              <p className="text-[10px] text-text-secondary uppercase tracking-wider">Points</p>
-              <p className="text-lg font-bold text-purple">{assignment.estimated_points}</p>
+              <p className="text-[9px] text-text-secondary/60 uppercase tracking-widest">Points</p>
+              <p className="text-lg font-bold text-purple font-mono">{assignment.estimated_points}</p>
             </div>
             <div>
-              <p className="text-[10px] text-text-secondary uppercase tracking-wider">Sprints</p>
-              <p className="text-lg font-bold text-text-primary">{assignment.estimated_sprints}</p>
+              <p className="text-[9px] text-text-secondary/60 uppercase tracking-widest">Sprints</p>
+              <p className="text-lg font-bold text-text-primary font-mono">{assignment.estimated_sprints}</p>
             </div>
             <div className="flex-1">
-              <p className="text-[10px] text-text-secondary uppercase tracking-wider">Timeline</p>
-              <p className="text-xs text-text-primary leading-relaxed">{assignment.sprint_fit}</p>
+              <p className="text-[9px] text-text-secondary/60 uppercase tracking-widest">Timeline</p>
+              <p className="text-[11px] text-text-primary/80 leading-relaxed">{assignment.sprint_fit}</p>
             </div>
           </div>
 
-          {/* Ticket Preview */}
           {assignment.ticket && (
-            <div className="rounded-xl border border-border overflow-hidden">
-              <div className="bg-gray-50 px-4 py-2.5 border-b border-border flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded bg-purple" />
-                  <span className="text-xs font-medium text-text-secondary">Ticket Preview</span>
-                </div>
+            <div className="rounded-lg border border-border overflow-hidden">
+              <div className="bg-white/[0.02] px-3.5 py-2 border-b border-border flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-sm bg-purple" />
+                  <span className="text-[10px] font-medium text-text-secondary">Ticket Preview</span>
+                </div>
+                <div className="flex items-center gap-1">
                   {assignment.ticket.priority && (
-                    <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full capitalize ${priorityStyles[assignment.ticket.priority] || priorityStyles.medium}`}>
+                    <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md capitalize ${priorityStyles[assignment.ticket.priority] || priorityStyles.medium}`}>
                       {assignment.ticket.priority}
                     </span>
                   )}
                   {(assignment.ticket.labels || []).map((l) => (
-                    <span key={l} className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-light text-purple">
+                    <span key={l} className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-purple/10 text-purple">
                       {l}
                     </span>
                   ))}
                 </div>
               </div>
-              <div className="p-4">
-                <h5 className="text-sm font-semibold text-text-primary mb-2">{assignment.ticket.title}</h5>
-                <p className="text-xs text-text-secondary leading-relaxed whitespace-pre-wrap">{assignment.ticket.description}</p>
+              <div className="p-3.5">
+                <h5 className="text-[13px] font-semibold text-text-primary mb-1.5">{assignment.ticket.title}</h5>
+                <p className="text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap">{assignment.ticket.description}</p>
               </div>
-              <div className="px-4 py-3 border-t border-border flex items-center gap-2">
+              <div className="px-3.5 py-2.5 border-t border-border flex items-center gap-1.5">
                 <div className="relative">
                   <button
+                    data-testid="create-linear-btn"
                     onMouseEnter={() => setShowTooltip(true)}
                     onMouseLeave={() => setShowTooltip(false)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple text-white text-xs font-medium hover:bg-purple/90 transition-colors"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple text-white text-[11px] font-medium hover:bg-purple/90 transition-colors"
                   >
-                    <ExternalLink size={12} />
+                    <ExternalLink size={11} />
                     Create in Linear
                   </button>
                   {showTooltip && (
-                    <div className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-[10px] rounded-lg whitespace-nowrap shadow-lg z-10">
-                      Linear integration ready — connect via Settings
-                      <div className="absolute top-full left-4 w-2 h-2 bg-gray-900 rotate-45 -mt-1" />
+                    <div className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1 bg-bg-elevated text-text-primary text-[10px] rounded-md whitespace-nowrap shadow-lg border border-border z-10">
+                      Linear integration ready -- connect via Settings
+                      <div className="absolute top-full left-4 w-1.5 h-1.5 bg-bg-elevated rotate-45 -mt-0.5 border-r border-b border-border" />
                     </div>
                   )}
                 </div>
                 <button
+                  data-testid="copy-ticket-btn"
                   onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-border text-[11px] font-medium text-text-secondary hover:text-text-primary hover:bg-white/[0.02] transition-colors"
                 >
-                  {copied ? <Check size={12} className="text-green-500" /> : <Copy size={12} />}
+                  {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
                   {copied ? 'Copied' : 'Copy Ticket'}
                 </button>
               </div>
             </div>
           )}
 
-          {/* Risks & Dependencies */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {assignment.risks?.length > 0 && (
-              <div className="p-3 rounded-lg bg-red-50 border border-red-100">
-                <p className="text-[10px] font-medium text-red-700 uppercase tracking-wider mb-1.5">Risks</p>
-                <ul className="space-y-1">
+              <div className="p-2.5 rounded-lg bg-red-500/5 border border-red-500/10">
+                <p className="text-[9px] font-medium text-red-400 uppercase tracking-widest mb-1">Risks</p>
+                <ul className="space-y-0.5">
                   {assignment.risks.map((r, i) => (
-                    <li key={i} className="text-xs text-red-600 leading-relaxed">• {r}</li>
+                    <li key={i} className="text-[11px] text-red-400/80 leading-relaxed">- {r}</li>
                   ))}
                 </ul>
               </div>
             )}
             {assignment.dependencies?.length > 0 && (
-              <div className="p-3 rounded-lg bg-amber-50 border border-amber-100">
-                <p className="text-[10px] font-medium text-amber-700 uppercase tracking-wider mb-1.5">Dependencies</p>
-                <ul className="space-y-1">
+              <div className="p-2.5 rounded-lg bg-amber/5 border border-amber/10">
+                <p className="text-[9px] font-medium text-amber uppercase tracking-widest mb-1">Dependencies</p>
+                <ul className="space-y-0.5">
                   {assignment.dependencies.map((d, i) => (
-                    <li key={i} className="text-xs text-amber-600 leading-relaxed">• {d}</li>
+                    <li key={i} className="text-[11px] text-amber/80 leading-relaxed">- {d}</li>
                   ))}
                 </ul>
               </div>
@@ -304,8 +290,6 @@ function getEngineerColor(id) {
   return eng?.avatar_color || '#6B7280'
 }
 
-// ─── Main Page ──────────────────────────────────────────────────────────────
-
 export default function Assignments() {
   const {
     analysisResults,
@@ -320,11 +304,10 @@ export default function Assignments() {
   const topRecs = recommendations.slice(0, 3)
 
   const [team, setTeam] = useState(initialEngineers.map((e) => ({ ...e })))
-  const [assignments, setAssignments] = useState({}) // featureName -> assignment result
-  const [loading, setLoading] = useState({}) // featureName -> true
+  const [assignments, setAssignments] = useState({})
+  const [loading, setLoading] = useState({})
   const [error, setError] = useState(null)
 
-  // Get highlighted engineer IDs from assignments
   const highlightedIds = new Set()
   Object.values(assignments).forEach((a) => {
     if (a.primary_assignee?.id) highlightedIds.add(a.primary_assignee.id)
@@ -345,7 +328,6 @@ export default function Assignments() {
 
       setAssignments((prev) => ({ ...prev, [featureName]: result }))
 
-      // Update engineer load bars
       setTeam((prev) => {
         const updated = prev.map((e) => ({ ...e }))
         const primaryId = result.primary_assignee?.id
@@ -367,7 +349,6 @@ export default function Assignments() {
         return updated
       })
 
-      // Update global state
       const newAssignment = {
         feature: featureName,
         assignee: result.primary_assignee?.name,
@@ -393,38 +374,38 @@ export default function Assignments() {
 
   if (recommendations.length === 0) {
     return (
-      <div className="bg-bg-card rounded-2xl border border-border p-12 shadow-[0_1px_3px_rgba(0,0,0,0.04)] text-center">
-        <Target size={40} className="mx-auto mb-4 text-text-secondary/30" />
-        <h2 className="text-lg font-semibold mb-2">No Recommendations Yet</h2>
-        <p className="text-sm text-text-secondary mb-5">
+      <div className="bg-bg-card rounded-xl border border-border p-10 text-center">
+        <Target size={36} className="mx-auto mb-3 text-text-secondary/15" />
+        <h2 className="text-base font-semibold mb-1.5 text-text-primary">No Recommendations Yet</h2>
+        <p className="text-[13px] text-text-secondary mb-4">
           Complete the AI Analysis to get feature recommendations for assignment.
         </p>
         <button
+          data-testid="goto-analysis-from-assign"
           onClick={() => navigate('/analysis')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple text-white text-sm font-medium hover:bg-purple/90 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple text-white text-[13px] font-medium hover:bg-purple/90 transition-colors glow-btn"
         >
-          Go to Analysis <ArrowRight size={16} />
+          Go to Analysis <ArrowRight size={14} />
         </button>
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
-      {/* ── Team Overview ── */}
+    <div data-testid="assignments-page" className="space-y-7">
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-base font-semibold text-text-primary">Engineering Team</h2>
-            <p className="text-sm text-text-secondary mt-0.5">{team.length} engineers available</p>
+            <h2 className="text-[14px] font-semibold text-text-primary">Engineering Team</h2>
+            <p className="text-[13px] text-text-secondary mt-0.5"><span className="font-mono">{team.length}</span> engineers available</p>
           </div>
-          <div className="flex items-center gap-4 text-xs text-text-secondary">
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-green-500" /> &lt;50%</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber" /> 50-75%</span>
-            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> &gt;75%</span>
+          <div className="flex items-center gap-3 text-[11px] text-text-secondary">
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> &lt;50%</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber" /> 50-75%</span>
+            <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-red-400" /> &gt;75%</span>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 max-md:grid-cols-1 gap-3">
           {team.map((eng) => (
             <EngineerCard
               key={eng.id}
@@ -435,24 +416,23 @@ export default function Assignments() {
         </div>
       </div>
 
-      {/* ── Feature Assignments ── */}
       <div>
-        <h2 className="text-base font-semibold text-text-primary mb-1">Feature Assignment</h2>
-        <p className="text-sm text-text-secondary mb-4">
+        <h2 className="text-[14px] font-semibold text-text-primary mb-0.5">Feature Assignment</h2>
+        <p className="text-[13px] text-text-secondary mb-3">
           Click "Auto-Assign" to let AI match features to the best engineers
         </p>
 
         {error && (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-200 mb-4">
-            <AlertTriangle size={16} className="text-red-500 shrink-0" />
-            <p className="text-sm text-red-700 flex-1">{error}</p>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600">
-              <X size={14} />
+          <div className="flex items-center gap-2.5 p-3 rounded-lg bg-red-500/10 border border-red-500/20 mb-3">
+            <AlertTriangle size={14} className="text-red-400 shrink-0" />
+            <p className="text-[13px] text-red-400 flex-1">{error}</p>
+            <button data-testid="dismiss-error" onClick={() => setError(null)} className="text-red-500/30 hover:text-red-400 transition-colors">
+              <X size={13} />
             </button>
           </div>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {topRecs.map((rec) => (
             <FeatureRow
               key={rec.feature_name}
@@ -465,24 +445,23 @@ export default function Assignments() {
         </div>
       </div>
 
-      {/* ── Summary ── */}
       {Object.keys(assignments).length > 0 && (
-        <div className="bg-purple rounded-2xl p-6 shadow-[0_2px_8px_rgba(124,107,240,0.3)]">
-          <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider mb-3">Sprint Plan Summary</h3>
-          <div className="grid grid-cols-3 gap-6">
+        <div data-testid="sprint-summary" className="bg-purple/10 border border-purple/20 rounded-xl p-5">
+          <h3 className="text-[10px] font-semibold text-purple uppercase tracking-widest mb-3">Sprint Plan Summary</h3>
+          <div className="grid grid-cols-3 gap-5">
             <div>
-              <p className="text-3xl font-bold text-white">{Object.keys(assignments).length}</p>
-              <p className="text-sm text-white/70">Features assigned</p>
+              <p className="text-2xl font-bold text-text-primary font-mono">{Object.keys(assignments).length}</p>
+              <p className="text-[13px] text-text-secondary">Features assigned</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white">
+              <p className="text-2xl font-bold text-text-primary font-mono">
                 {Object.values(assignments).reduce((s, a) => s + (a.estimated_points || 0), 0)}
               </p>
-              <p className="text-sm text-white/70">Total points</p>
+              <p className="text-[13px] text-text-secondary">Total points</p>
             </div>
             <div>
-              <p className="text-3xl font-bold text-white">{highlightedIds.size}</p>
-              <p className="text-sm text-white/70">Engineers engaged</p>
+              <p className="text-2xl font-bold text-text-primary font-mono">{highlightedIds.size}</p>
+              <p className="text-[13px] text-text-secondary">Engineers engaged</p>
             </div>
           </div>
         </div>
