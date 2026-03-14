@@ -16,16 +16,19 @@ const pageTitles = {
 }
 
 export default function App() {
-  const { pathname } = useLocation()
-  const title = pageTitles[pathname] || 'Dashboard'
+  const location = useLocation()
+  const title = pageTitles[location.pathname] || 'Dashboard'
 
   return (
     <div className="flex min-h-screen bg-bg-main">
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col max-md:ml-0">
         <TopBar title={title} />
-        <main className="flex-1 w-full max-w-[1200px] mx-auto px-8 py-8">
-          <Routes>
+        <main
+          key={location.pathname}
+          className="flex-1 w-full max-w-[1200px] mx-auto px-8 py-8 max-md:px-4 max-md:pt-16 page-enter"
+        >
+          <Routes location={location}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/ingest" element={<IngestData />} />
             <Route path="/analysis" element={<Analysis />} />
