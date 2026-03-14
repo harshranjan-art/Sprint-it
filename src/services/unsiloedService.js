@@ -62,25 +62,24 @@ export async function parseFile(file) {
 }
 
 /**
- * Send parsed content to Claude for structured extraction.
+ * Send parsed content to Groq LLM for structured extraction.
  */
-export async function extractFeedbackWithClaude(parsedContent) {
-  const ANTHROPIC_KEY = import.meta.env.VITE_ANTHROPIC_KEY
-  if (!ANTHROPIC_KEY) {
-    throw new Error('Anthropic API key not configured')
+export async function extractFeedbackWithLLM(parsedContent) {
+  const GROQ_KEY = import.meta.env.VITE_GROQ_KEY
+  if (!GROQ_KEY || GROQ_KEY.startsWith('your_')) {
+    throw new Error('Groq API key not configured')
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': ANTHROPIC_KEY,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
+      Authorization: `Bearer ${GROQ_KEY}`,
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 4096,
+      temperature: 0.3,
       messages: [
         {
           role: 'user',
@@ -91,11 +90,11 @@ export async function extractFeedbackWithClaude(parsedContent) {
   })
 
   if (!res.ok) {
-    throw new Error(`Claude API failed: HTTP ${res.status}`)
+    throw new Error(`Groq API failed: HTTP ${res.status}`)
   }
 
   const data = await res.json()
-  const text = data.content?.[0]?.text || '[]'
+  const text = data.choices?.[0]?.message?.content || '[]'
 
   // Extract JSON from response (handle markdown code blocks)
   const jsonMatch = text.match(/\[[\s\S]*\]/)

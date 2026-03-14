@@ -1,4 +1,5 @@
-const ANTHROPIC_KEY = () => import.meta.env.VITE_ANTHROPIC_KEY
+const GROQ_KEY = () => import.meta.env.VITE_GROQ_KEY
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 function safeParseJSON(text) {
   let cleaned = text.trim()
@@ -36,9 +37,9 @@ Return ONLY valid JSON, no markdown fences:
 }`
 
 export async function autoAssign(recommendation, team, analysisContext = {}) {
-  const key = ANTHROPIC_KEY()
+  const key = GROQ_KEY()
   if (!key || key.startsWith('your_')) {
-    throw new Error('Anthropic API key not configured. Add VITE_ANTHROPIC_KEY to your .env file.')
+    throw new Error('Groq API key not configured. Add VITE_GROQ_KEY to your .env file.')
   }
 
   const userMessage = `Feature to assign:
@@ -50,28 +51,29 @@ ${JSON.stringify(team, null, 2)}
 Analysis context (themes and gaps):
 ${JSON.stringify(analysisContext, null, 2)}`
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: GROQ_MODEL,
       max_tokens: 4096,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'user', content: userMessage },
+      ],
     }),
   })
 
   if (!res.ok) {
     const err = await res.text().catch(() => '')
-    throw new Error(`Claude API error (${res.status}): ${err.slice(0, 200)}`)
+    throw new Error(`Groq API error (${res.status}): ${err.slice(0, 200)}`)
   }
 
   const data = await res.json()
-  const text = data.content?.[0]?.text || ''
+  const text = data.choices?.[0]?.message?.content || ''
   return safeParseJSON(text)
 }

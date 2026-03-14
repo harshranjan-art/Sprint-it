@@ -1,34 +1,36 @@
-const ANTHROPIC_KEY = () => import.meta.env.VITE_ANTHROPIC_KEY
+const GROQ_KEY = () => import.meta.env.VITE_GROQ_KEY
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
-async function callClaudeMarkdown(systemPrompt, userMessage) {
-  const key = ANTHROPIC_KEY()
+async function callLLMMarkdown(systemPrompt, userMessage) {
+  const key = GROQ_KEY()
   if (!key || key.startsWith('your_')) {
-    throw new Error('Anthropic API key not configured. Add VITE_ANTHROPIC_KEY to your .env file.')
+    throw new Error('Groq API key not configured. Add VITE_GROQ_KEY to your .env file.')
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: GROQ_MODEL,
       max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
     }),
   })
 
   if (!res.ok) {
     const err = await res.text().catch(() => '')
-    throw new Error(`Claude API error (${res.status}): ${err.slice(0, 200)}`)
+    throw new Error(`Groq API error (${res.status}): ${err.slice(0, 200)}`)
   }
 
   const data = await res.json()
-  return data.content?.[0]?.text || ''
+  return data.choices?.[0]?.message?.content || ''
 }
 
 function buildUserMessage(recommendation, themes, gaps) {
@@ -110,7 +112,7 @@ export async function generateDocument(docType, recommendation, themes, gaps) {
   }
 
   const userMessage = buildUserMessage(recommendation, themes, gaps)
-  const content = await callClaudeMarkdown(systemPrompt, userMessage)
+  const content = await callLLMMarkdown(systemPrompt, userMessage)
 
   return {
     content,

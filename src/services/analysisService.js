@@ -1,4 +1,5 @@
-const ANTHROPIC_KEY = () => import.meta.env.VITE_ANTHROPIC_KEY
+const GROQ_KEY = () => import.meta.env.VITE_GROQ_KEY
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 function safeParseJSON(text) {
   // Strip markdown code fences if present
@@ -16,35 +17,36 @@ function safeParseJSON(text) {
   return JSON.parse(cleaned)
 }
 
-async function callClaude(systemPrompt, userMessage) {
-  const key = ANTHROPIC_KEY()
+async function callLLM(systemPrompt, userMessage) {
+  const key = GROQ_KEY()
   if (!key || key.startsWith('your_')) {
-    throw new Error('Anthropic API key not configured. Add VITE_ANTHROPIC_KEY to your .env file.')
+    throw new Error('Groq API key not configured. Add VITE_GROQ_KEY to your .env file.')
   }
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
-      'content-type': 'application/json',
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: GROQ_MODEL,
       max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
+      temperature: 0.7,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
     }),
   })
 
   if (!res.ok) {
     const err = await res.text().catch(() => '')
-    throw new Error(`Claude API error (${res.status}): ${err.slice(0, 200)}`)
+    throw new Error(`Groq API error (${res.status}): ${err.slice(0, 200)}`)
   }
 
   const data = await res.json()
-  const text = data.content?.[0]?.text || ''
+  const text = data.choices?.[0]?.message?.content || ''
   return safeParseJSON(text)
 }
 
@@ -75,7 +77,7 @@ Return ONLY valid JSON, no markdown fences, no preamble:
 
   const userMessage = `Here are ${feedbackData.length} customer feedback entries to analyze:\n\n${JSON.stringify(feedbackData, null, 2)}`
 
-  return callClaude(systemPrompt, userMessage)
+  return callLLM(systemPrompt, userMessage)
 }
 
 // ─── Call 2: Competitive Gap Analysis ───────────────────────────────────────
@@ -104,7 +106,7 @@ Return ONLY valid JSON, no markdown fences, no preamble:
 
   const userMessage = `Themes discovered from customer feedback:\n${JSON.stringify(themes, null, 2)}\n\nCompetitor data:\n${JSON.stringify(competitorData, null, 2)}`
 
-  return callClaude(systemPrompt, userMessage)
+  return callLLM(systemPrompt, userMessage)
 }
 
 // ─── Call 3: Prioritized Recommendations ────────────────────────────────────
@@ -144,5 +146,5 @@ Return ONLY valid JSON, no markdown fences, no preamble:
 
   const userMessage = `Themes:\n${JSON.stringify(themes, null, 2)}\n\nCompetitive gaps:\n${JSON.stringify(gaps, null, 2)}\n\nCompetitor data:\n${JSON.stringify(competitorData, null, 2)}\n\nWeights: ${JSON.stringify(weights)}`
 
-  return callClaude(systemPrompt, userMessage)
+  return callLLM(systemPrompt, userMessage)
 }

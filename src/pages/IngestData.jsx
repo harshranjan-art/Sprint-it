@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 import { generateMockFeedback } from '../services/mockData'
-import { parseFile, extractFeedbackWithClaude } from '../services/unsiloedService'
+import { parseFile, extractFeedbackWithLLM } from '../services/unsiloedService'
 import { enrichCompany } from '../services/crustdataService'
 
 const ACCEPTED_TYPES = [
@@ -254,7 +254,7 @@ export default function IngestData() {
 
       try {
         const parsed = await parseFile(file)
-        const entries = await extractFeedbackWithClaude(parsed)
+        const entries = await extractFeedbackWithLLM(parsed)
 
         if (entries.length > 0) {
           updateState({ feedbackData: [...feedbackData, ...entries] })
