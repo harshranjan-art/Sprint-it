@@ -42,14 +42,28 @@ export async function autoAssign(recommendation, team, analysisContext = {}) {
     throw new Error('Groq API key not configured. Add VITE_GROQ_KEY to your .env file.')
   }
 
+  // Compact payloads to stay within Groq token limits
+  const rec = {
+    feature_name: recommendation.feature_name,
+    description: recommendation.description,
+    target_segment: recommendation.target_segment,
+    effort: recommendation.effort,
+    priority_score: recommendation.priority_score,
+  }
+  const compactTeam = team.map((e) => ({
+    id: e.id,
+    name: e.name,
+    role: e.role,
+    skills: e.skills,
+    load: e.load,
+    current_tasks: e.current_tasks,
+  }))
+
   const userMessage = `Feature to assign:
-${JSON.stringify(recommendation, null, 2)}
+${JSON.stringify(rec, null, 1)}
 
-Available engineering team:
-${JSON.stringify(team, null, 2)}
-
-Analysis context (themes and gaps):
-${JSON.stringify(analysisContext, null, 2)}`
+Engineering team:
+${JSON.stringify(compactTeam, null, 1)}`
 
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
