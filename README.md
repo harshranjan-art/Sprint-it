@@ -1,66 +1,349 @@
 # Sprint It
 
-**Sprint It** is an AI product management agent — not just a dashboard, but an autonomous system that does the actual work of a PM: ingests messy data, discovers what users need, decides what to build, writes the specs, and assigns work to engineers.
+> **"40 hours of PM work. 90 seconds."**
 
-It replaces the entire PM coordination layer.
+Sprint It is an AI product management agent. Not a dashboard. Not a tool that helps PMs work faster. An autonomous system that **replaces** the PM coordination layer entirely — it ingests messy data, discovers what users need, decides what to build, writes the specs, and assigns work to engineers.
 
-## What It Does
+---
 
-1. **Ingest Data** — Upload customer feedback (PDFs, CSVs, any format) via Unsiloed, or load sample data. Pull competitor intelligence via Crustdata.
-2. **AI Analysis** — Three sequential LLM calls discover themes, analyze competitive gaps, and generate prioritized recommendations with weighted scoring.
-3. **Document Generation** — Auto-generates PRDs, OKRs, executive one-pagers, and experiment specs for top recommendations.
-4. **Team Assignment** — AI matches features to engineers based on skills, bandwidth, and context. Produces ready-to-paste Linear/Jira tickets.
-5. **Full Pipeline** — One-click "Run Full Pipeline" executes all stages end-to-end with a real-time progress overlay.
+## The Problem
 
-Every action is logged to an S2.dev durable event stream for persistence and audit trail.
+Product managers spend 40+ hours per sprint cycle on:
+- Manually reading through hundreds of customer feedback entries
+- Copying Zendesk tickets into Notion, tagging themes by hand
+- Arguing over priorities in 2-hour meetings with no data
+- Writing PRDs from scratch in blank Google Docs
+- Playing Tetris with engineer assignments based on gut feel
+
+Sprint It does all of this autonomously in under 90 seconds.
+
+---
+
+## How It Works — The Full Pipeline
+
+Sprint It runs a 5-stage autonomous pipeline. Each stage feeds into the next. Every action is logged to an S2.dev durable event stream for persistence and real-time audit trail.
+
+### Stage 1: Data Ingestion
+
+**Page: Ingest Data** — *"Every customer signal, one drag away"*
+
+Two parallel data sources feed the pipeline:
+
+**Customer Intelligence (via Unsiloed)**
+- Drag-and-drop file upload accepting PDF, XLSX, CSV, DOCX, PPTX, PNG, JPG
+- Files are sent to Unsiloed's parse API (`POST /parse`) for document extraction
+- Unsiloed returns structured chunks which are concatenated into raw text
+- The raw text is sent to Groq LLM for structured extraction — each feedback entry is classified with: customer name, feedback text, sentiment, source type, customer segment, date, and category
+- Fallback: "Load Sample Data" generates 150 realistic mock feedback entries with realistic distribution (30% feature requests, 25% bugs, 25% complaints, 20% praise) across weighted sources (Zendesk 30%, Intercom 25%, Survey 25%, Slack 20%) and segments (Enterprise 40%, SMB 35%, Free 25%)
+
+**Competitive Intelligence (via Crustdata)**
+- Enter competitor domains or click pre-suggested chips (Productboard, Aha!, Dovetail, Notion)
+- Each domain hits Crustdata's enrichment API (`POST /enrich/company/`) for headcount, funding, growth signals
+- Falls back to hardcoded competitive intelligence for known competitors
+- Each competitor card shows: headcount with YoY growth, funding + round, key strength, key weakness vs Sprint It
+
+**What happens behind the scenes:**
+```
+User drops file → Unsiloed /parse → poll /parse/{job_id} → raw chunks
+  → Groq LLM extracts structured entries → feedbackData[] in global state
+  → S2 event logged: "data_ingested"
+  → Pipeline status: ingest → complete
+```
+
+### Stage 2: AI Analysis
+
+**Page: Analysis** — *"Your customers already told you what to build. We found it."*
+
+Three sequential Groq LLM calls (model: `llama-3.3-70b-versatile`):
+
+**Call 1 — Theme Discovery**
+- Input: Condensed feedback summary (aggregated by category with representative quotes — NOT raw JSON, to fit Groq's 12K TPM limit)
+- System prompt instructs the LLM to act as a PM agent discovering actionable themes
+- Output: Array of themes, each with name, description, frequency, severity (critical/high/medium/low), affected segments, evidence quotes, category, and revenue impact estimate
+- Display: 2-column grid of theme cards with color-coded severity borders, expandable evidence quotes
+
+**Call 2 — Competitive Gap Analysis**
+- Input: Compact theme summaries + competitor profiles
+- Output: Gap matrix (capability areas with status per company), market position summary, biggest threat, biggest opportunity
+- Display: Gap table with colored status dots (green=strong, amber=building, red=weak, gray=missing), threat/opportunity callout cards
+
+**Call 3 — Prioritized Recommendations**
+- Input: Themes + gaps + weight configuration
+- System prompt instructs the LLM to make actual product decisions with conviction, not suggest options
+- Output: Ranked feature recommendations with scores across 4 dimensions (user impact, revenue impact, effort, strategic alignment), evidence, competitive context, risk-if-delayed
+- Priority score formula: weighted average across all 4 dimensions, configurable via sliders
+- Display: Executive summary card, #1 hero card, ranked list with expandable details
+- **Live re-sorting**: Weight sliders recalculate scores client-side (no re-API-call) and re-sort instantly
+
+**What happens behind the scenes:**
+```
+feedbackData[] → condenseFeedback() → Groq (themes) → Groq (gaps) → Groq (recommendations)
+  → analysisResults in global state
+  → S2 events: "analysis_started", "themes_found", "recommendations_made"
+  → Pipeline status: analysis → complete
+```
+
+### Stage 3: Document Generation
+
+**Page: Documents** — *"One click. Full spec. Actually good."*
+
+Four document types, each generated by a separate Groq LLM call:
+
+| Document | What It Produces |
+|----------|-----------------|
+| **PRD** | 10-section Product Requirements Document (overview, user stories, success metrics, requirements, scope, technical considerations, design notes, timeline, open questions, risks) |
+| **OKRs** | 1 objective + 3 key results with numeric targets + initiatives per KR |
+| **One-Pager** | Executive summary under 400 words (the ask, why now, expected impact, resource ask, risks, timeline) |
+| **Experiment Spec** | A/B test spec (hypothesis, control vs treatment, metrics, sample size, duration, rollout plan, kill criteria) |
+
+- Top 3 recommendations shown as selectable feature cards
+- Tab interface switches between document types
+- Generated markdown is rendered with styled components (purple headers, clean tables, code blocks)
+- Documents are cached in global state — switching tabs doesn't re-generate
+- Action bar: Copy to clipboard, Regenerate, Download as .md file
+- Collapsible evidence section shows which customer quotes informed the document
+
+**What happens behind the scenes:**
+```
+recommendation + themes + gaps → compact payload → Groq (system prompt per doc type)
+  → raw markdown → rendered via react-markdown + remark-gfm
+  → cached in generatedDocs[featureId][docType]
+  → S2 event: "doc_generated"
+  → Pipeline status: docs → complete
+```
+
+### Stage 4: Team Assignment
+
+**Page: Assignments** — *"Right engineer. Right task. Auto-assigned to Linear."*
+
+**Team Database (6 mock engineers):**
+
+| Engineer | Role | Skills | Current Load |
+|----------|------|--------|-------------|
+| Sarah Chen | Senior Frontend | React, TypeScript, Design Systems, A11y | 65% |
+| Marcus Johnson | Senior Backend | Python, PostgreSQL, APIs, Microservices | 40% |
+| Priya Patel | Full Stack | React, Node.js, GraphQL, MongoDB | 80% |
+| Alex Kim | Data Engineer | Python, SQL, dbt, Analytics, ML | 30% |
+| Jordan Lee | Backend / Infra | Go, K8s, Terraform, CI/CD | 55% |
+| Riley Torres | Frontend | React, CSS, Animation, Testing | 45% |
+
+**Auto-Assignment via Groq LLM:**
+- Input: Compact recommendation + team profiles (skills, load, current tasks)
+- LLM considers: skill match, bandwidth, context overlap, growth opportunities
+- Output: Primary assignee + supporting engineer (with reasons), story points (fibonacci 1-13), sprint estimate, timeline explanation, ready-to-paste ticket (title, description, labels, priority), risks, dependencies
+- After assignment: engineer load bars update in real-time (+18% primary, +10% support)
+- Ticket preview styled like Linear — with "Create in Linear" button (integration-ready) and "Copy Ticket" to clipboard
+
+**What happens behind the scenes:**
+```
+recommendation + team[] → Groq (engineering manager prompt)
+  → assignment result → update engineer loads → create ticket preview
+  → S2 event: "task_assigned"
+  → Pipeline status: assign → complete
+```
+
+### One-Click Full Pipeline
+
+The Dashboard's **"Run Full Pipeline"** button executes all 5 stages sequentially with a real-time progress overlay:
+
+```
+Step 1: Load 150 mock feedback + 4 competitors
+Step 2: Discover themes (Groq API)
+Step 3: Analyze competitive gaps (Groq API)
+Step 4: Generate recommendations (Groq API)
+Step 5: Write PRD for #1 recommendation (Groq API)
+Step 6: Auto-assign #1 recommendation (Groq API)
+```
+
+Total: 5 Groq API calls, ~60-90 seconds, replacing ~40 hours of manual PM work.
+
+---
+
+## S2.dev — The Event Stream Backbone
+
+Every significant action in the pipeline is logged to an [S2.dev](https://s2.dev) durable event stream. S2 is append-only, ordered, real-time — like Kafka but serverless with simple REST.
+
+**On app load:**
+- `initStream()` creates a new stream: `POST https://{basin}.b.aws.s2.dev/v1/streams`
+- Stream name: `session-{timestamp}`
+- If S2 token is missing/invalid, falls back to in-memory array (local-only mode)
+
+**Every pipeline action appends a record:**
+- `logEvent()` → `POST /streams/{stream}/records` with JSON body
+- Event format: `{ timestamp, type, summary, data }`
+- Event types: `session_started`, `data_ingested`, `analysis_started`, `themes_found`, `recommendations_made`, `doc_generated`, `task_assigned`
+
+**Activity Feed** shows the full event timeline in real-time with color-coded type badges and auto-scroll.
+
+**Read/audit:**
+- `getEventHistory()` → `GET /streams/{stream}/records?seq_num=0`
+- `getStreamInfo()` → `GET /streams/{stream}/records/tail` for record count
+
+---
 
 ## Tech Stack
 
-- **Frontend**: React 19 + Vite + Tailwind CSS v4
-- **LLM**: Groq API (llama-3.3-70b-versatile)
-- **Document Parsing**: Unsiloed API
-- **Competitor Data**: Crustdata API
-- **Event Streaming**: S2.dev
-- **Icons**: lucide-react
-- **Markdown Rendering**: react-markdown + remark-gfm
+| Layer | Technology | Why |
+|-------|-----------|-----|
+| **Frontend** | React 19 + Vite 6 | Fast dev, modern React features |
+| **Styling** | Tailwind CSS v4 | Utility-first, zero CSS files to manage |
+| **LLM** | Groq API (`llama-3.3-70b-versatile`) | Fast inference, high rate limits, free tier |
+| **Document Parsing** | Unsiloed API | Converts any file format to structured text |
+| **Competitor Data** | Crustdata API | Real-time B2B company enrichment |
+| **Event Streaming** | S2.dev | Durable, ordered, append-only event log |
+| **Icons** | lucide-react | Clean, consistent icon set |
+| **Markdown** | react-markdown + remark-gfm | Rendered document output with GFM tables |
+| **Routing** | react-router-dom v7 | Client-side page navigation |
+| **Font** | Inter (Google Fonts) | Clean, professional, highly legible |
 
-## Getting Started
-
-```bash
-# Install dependencies
-npm install
-
-# Add your API keys to .env
-cp .env.example .env
-# Edit .env with your keys:
-#   VITE_GROQ_KEY=gsk_...
-#   VITE_S2_TOKEN=...
-#   VITE_UNSILOED_KEY=... (optional)
-#   VITE_CRUSTDATA_KEY=... (optional)
-
-# Start dev server
-npm run dev
-```
-
-The app works with just a Groq API key — Unsiloed and Crustdata are optional (falls back to mock data).
+---
 
 ## Project Structure
 
 ```
-src/
-├── components/       # Sidebar, TopBar, ActivityFeed, PipelineOverlay
-├── context/          # AppContext (global state), ToastContext
-├── data/             # Mock team data
-├── hooks/            # useCountUp animation hook
-├── pages/            # Dashboard, IngestData, Analysis, Documents, Assignments
-└── services/         # Groq LLM, S2, Unsiloed, Crustdata, pipeline runner
+sprint-it/
+├── index.html                          # Entry HTML, loads Inter font
+├── vite.config.js                      # Vite + React + Tailwind plugins
+├── package.json                        # Dependencies and scripts
+├── .env                                # API keys (not committed)
+│
+├── public/
+│   └── logo.png                        # Sprint It logo
+│
+└── src/
+    ├── main.jsx                        # React entry, providers setup
+    ├── App.jsx                         # Top-nav layout + routing
+    ├── index.css                       # Tailwind + theme tokens + animations
+    │
+    ├── components/
+    │   ├── TopBar.jsx                  # Horizontal navigation bar
+    │   ├── Sidebar.jsx                 # (Legacy, returns null)
+    │   ├── ActivityFeed.jsx            # S2 event timeline with colored dots
+    │   ├── PipelineOverlay.jsx         # Full-pipeline progress modal
+    │   └── PageHeader.jsx              # Bold page title + tagline
+    │
+    ├── context/
+    │   ├── AppContext.jsx              # Global state: feedback, analysis, docs, assignments, pipeline status, S2 stream
+    │   └── ToastContext.jsx            # Toast notification system
+    │
+    ├── data/
+    │   └── mockTeam.js                 # 6 mock engineers with skills, load, tasks
+    │
+    ├── hooks/
+    │   └── useCountUp.js              # Animated number counting hook
+    │
+    ├── pages/
+    │   ├── Dashboard.jsx               # Hero + pipeline stats + recommendation + activity feed
+    │   ├── IngestData.jsx              # File upload + competitor enrichment + stats
+    │   ├── Analysis.jsx                # 3-step AI analysis with theme/gap/recommendation display
+    │   ├── Documents.jsx               # PRD/OKR/One-Pager/Experiment generation + markdown render
+    │   └── Assignments.jsx             # Team grid + auto-assignment + ticket preview
+    │
+    └── services/
+        ├── s2Service.js                # S2.dev stream create, append, read, tail
+        ├── analysisService.js          # 3 Groq LLM calls (themes, gaps, recommendations)
+        ├── docService.js               # 4 Groq LLM calls (PRD, OKRs, one-pager, experiment)
+        ├── assignmentService.js        # Groq LLM call (engineer matching + ticket generation)
+        ├── unsiloedService.js          # File upload → parse → poll → extract
+        ├── crustdataService.js         # Company enrichment with mock fallback
+        ├── pipelineRunner.js           # Orchestrates full end-to-end pipeline
+        └── mockData.js                 # 150 realistic feedback entries + competitor profiles
 ```
+
+---
+
+## Global State (React Context)
+
+```javascript
+{
+  feedbackData: [],           // Parsed customer feedback entries
+  competitorData: [],         // Enriched competitor profiles
+  analysisResults: {
+    themes: [],               // Discovered feedback themes
+    gaps: [],                 // Competitive gap analysis
+    recommendations: [],      // Prioritized feature recommendations
+    marketPosition: "",       // Market position summary
+    biggestThreat: "",        // Top competitive threat
+    biggestOpportunity: "",   // Top opportunity
+    summary: "",              // Executive strategy summary
+  },
+  generatedDocs: {},          // { [featureName]: { prd, okrs, onePager, experimentSpec } }
+  teamAssignments: [],        // Completed assignments
+  pipelineStatus: {           // pending | active | complete
+    ingest: 'pending',
+    analysis: 'pending',
+    docs: 'pending',
+    assign: 'pending',
+  },
+  s2StreamId: null,           // Current S2 stream name
+  s2Persisted: false,         // Whether S2 is connected
+  eventLog: [],               // All pipeline events (also persisted to S2)
+}
+```
+
+---
+
+## Getting Started
+
+```bash
+# Clone and install
+git clone <repo-url>
+cd sprint-it
+npm install
+
+# Configure API keys
+cp .env.example .env
+```
+
+Edit `.env`:
+```env
+VITE_GROQ_KEY=gsk_...          # Required — powers all AI analysis
+VITE_S2_TOKEN=...               # Optional — enables durable event streaming
+VITE_S2_BASIN=sprint-it         # S2 basin name (default: sprint-it)
+VITE_UNSILOED_KEY=...           # Optional — enables file parsing
+VITE_CRUSTDATA_KEY=...          # Optional — enables live competitor data
+```
+
+```bash
+# Run
+npm run dev                     # Dev server at localhost:5173
+npm run build                   # Production build
+npm run preview                 # Preview production build
+```
+
+**Minimum viable setup:** Just `VITE_GROQ_KEY`. Everything else falls back to mock data gracefully.
+
+---
+
+## Token Optimization for Groq
+
+Groq's free tier has a 12K tokens-per-minute limit. Sprint It optimizes for this:
+
+- **Feedback condensation**: Instead of sending 150 raw JSON entries (~50K tokens), `condenseFeedback()` pre-aggregates by category, counts sentiments/segments/sources, and keeps only 8 representative quotes per category (~2K tokens)
+- **Compact payloads**: Gap analysis and recommendations receive only theme name/severity/frequency, not full objects
+- **Lean document context**: Doc generation sends only essential recommendation fields + theme names as strings + gap areas as strings
+- **Reduced max_tokens**: All calls use `max_tokens: 4096` to leave room for input
+
+---
 
 ## Design System
 
-- Primary: #7C6BF0 (purple)
-- Accent: #F5B731 (amber/gold)
-- Clean, modern SaaS aesthetic — Inter font, rounded cards, subtle shadows
+Inspired by the DeFAI MCP visual language — bold, high-contrast, statement-driven.
+
+| Element | Value |
+|---------|-------|
+| Background | `#FFFFFF` (pure white) |
+| Text | `#0A0A0A` (near-black) |
+| Primary accent | `#7C6BF0` (purple) |
+| Secondary accent | `#F5B731` (gold/amber) |
+| Borders | `2px solid black` (key cards), `1px #E5E5E5` (subtle) |
+| Font | Inter |
+| Headings | `font-black uppercase tracking-tight` |
+| Buttons | No border-radius, uppercase, bold — like DeFAI CTAs |
+| Cards | Sharp corners, heavy borders, lots of whitespace |
+
+---
 
 ## Built For
-Compiler X Razorpay X Magicball Hackathon 
+
+Compiler X Razorpay X Magicball Hackathon — demonstrating S2.dev as the durable event stream backbone for an AI-native product management tool.
