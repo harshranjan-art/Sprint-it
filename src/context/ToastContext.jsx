@@ -3,16 +3,12 @@ import { CheckCircle2, AlertTriangle, Info, X } from 'lucide-react'
 
 const ToastContext = createContext(null)
 
-const iconMap = {
-  success: CheckCircle2,
-  error: AlertTriangle,
-  info: Info,
-}
+const iconMap = { success: CheckCircle2, error: AlertTriangle, info: Info }
 
 const styleMap = {
-  success: 'bg-bg-card border-emerald-500/20 text-emerald-400',
-  error: 'bg-bg-card border-red-500/20 text-red-400',
-  info: 'bg-bg-card border-purple/20 text-purple',
+  success: 'bg-white border-2 border-green-600 text-green-700',
+  error: 'bg-white border-2 border-red-600 text-red-700',
+  info: 'bg-white border-2 border-purple text-purple',
 }
 
 let toastId = 0
@@ -24,9 +20,7 @@ export function ToastProvider({ children }) {
     const id = ++toastId
     setToasts((prev) => [...prev, { id, message, type }])
     if (duration > 0) {
-      setTimeout(() => {
-        setToasts((prev) => prev.filter((t) => t.id !== id))
-      }, duration)
+      setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), duration)
     }
     return id
   }, [])
@@ -44,17 +38,12 @@ export function ToastProvider({ children }) {
           return (
             <div
               key={toast.id}
-              data-testid={`toast-${toast.type}`}
-              className={`pointer-events-auto flex items-center gap-2.5 px-4 py-2.5 rounded-lg border shadow-[0_4px_20px_rgba(0,0,0,0.4)] animate-[slideUp_0.3s_ease-out] ${styleMap[toast.type] || styleMap.info}`}
+              className={`pointer-events-auto flex items-center gap-3 px-4 py-3 shadow-lg animate-[slideUp_0.3s_ease-out] ${styleMap[toast.type] || styleMap.info}`}
             >
-              <Icon size={14} className="shrink-0" />
-              <span className="text-[13px] font-medium">{toast.message}</span>
-              <button
-                data-testid="toast-dismiss"
-                onClick={() => removeToast(toast.id)}
-                className="text-white/20 hover:text-white/50 ml-1 transition-colors"
-              >
-                <X size={12} />
+              <Icon size={16} className="shrink-0" />
+              <span className="text-sm font-semibold">{toast.message}</span>
+              <button onClick={() => removeToast(toast.id)} className="opacity-30 hover:opacity-60 ml-1">
+                <X size={14} />
               </button>
             </div>
           )

@@ -3,20 +3,19 @@ import { useAppContext } from '../context/AppContext'
 import { Cloud, HardDrive } from 'lucide-react'
 
 const typeColors = {
-  data_ingested: { bg: 'bg-teal-500/10', text: 'text-teal-400', dot: 'bg-teal-400', line: 'bg-teal-500/20' },
+  data_ingested: { bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-500', line: 'bg-teal-200' },
   analysis_started: { bg: 'bg-purple/10', text: 'text-purple', dot: 'bg-purple', line: 'bg-purple/20' },
   themes_found: { bg: 'bg-purple/10', text: 'text-purple', dot: 'bg-purple', line: 'bg-purple/20' },
   recommendations_made: { bg: 'bg-purple/10', text: 'text-purple', dot: 'bg-purple', line: 'bg-purple/20' },
-  doc_generated: { bg: 'bg-amber/10', text: 'text-amber', dot: 'bg-amber', line: 'bg-amber/20' },
-  task_assigned: { bg: 'bg-blue-400/10', text: 'text-blue-400', dot: 'bg-blue-400', line: 'bg-blue-400/20' },
-  session_started: { bg: 'bg-white/5', text: 'text-text-secondary', dot: 'bg-white/30', line: 'bg-white/8' },
+  doc_generated: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-gold', line: 'bg-gold/30' },
+  task_assigned: { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-500', line: 'bg-blue-200' },
+  session_started: { bg: 'bg-neutral-100', text: 'text-text-secondary', dot: 'bg-neutral-400', line: 'bg-neutral-200' },
 }
 
-const defaultColor = { bg: 'bg-white/5', text: 'text-text-secondary', dot: 'bg-white/30', line: 'bg-white/8' }
+const defaultColor = { bg: 'bg-neutral-100', text: 'text-text-secondary', dot: 'bg-neutral-400', line: 'bg-neutral-200' }
 
 function formatTime(ts) {
-  const d = new Date(ts)
-  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
 }
 
 function typeLabel(type) {
@@ -32,26 +31,21 @@ export default function ActivityFeed() {
   }, [eventLog.length])
 
   return (
-    <div data-testid="activity-feed" className="bg-bg-card rounded-xl border border-border card-glow flex flex-col h-full">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-        <h3 className="text-[13px] font-semibold text-text-primary">Activity Feed</h3>
-        <span
-          data-testid="persistence-status"
-          className={`inline-flex items-center gap-1.5 text-[10px] font-medium px-2 py-0.5 rounded-md ${
-            s2Persisted
-              ? 'bg-emerald-500/10 text-emerald-400'
-              : 'bg-white/5 text-text-secondary'
-          }`}
-        >
-          {s2Persisted ? <Cloud size={10} /> : <HardDrive size={10} />}
-          {s2Persisted ? 'Persisted to S2' : 'Local only'}
+    <div className="border-2 border-black h-full flex flex-col">
+      <div className="flex items-center justify-between px-5 py-3 border-b-2 border-black">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-black">Activity Feed</h3>
+        <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 ${
+          s2Persisted ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-text-secondary'
+        }`}>
+          {s2Persisted ? <Cloud size={12} /> : <HardDrive size={12} />}
+          {s2Persisted ? 'S2 Synced' : 'Local'}
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 max-h-[480px]">
+      <div className="flex-1 overflow-y-auto px-5 py-4 max-h-[400px]">
         {eventLog.length === 0 ? (
-          <p className="text-[13px] text-text-secondary text-center py-8">
-            No events yet. Activity will appear here as the pipeline runs.
+          <p className="text-sm text-text-muted text-center py-8">
+            No events yet. Run the pipeline to see activity.
           </p>
         ) : (
           <div className="relative">
@@ -59,31 +53,19 @@ export default function ActivityFeed() {
               const colors = typeColors[event.type] || defaultColor
               const isLast = i === eventLog.length - 1
               return (
-                <div
-                  key={`${event.timestamp}-${i}`}
-                  className="flex gap-2.5 pb-3.5 animate-[fadeIn_0.3s_ease-in-out]"
-                >
+                <div key={`${event.timestamp}-${i}`} className="flex gap-3 pb-4 animate-[fadeIn_0.3s_ease-out]">
                   <div className="flex flex-col items-center pt-1">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${colors.dot}`} />
-                    {!isLast && (
-                      <div className={`w-px flex-1 mt-1 ${colors.line}`} />
-                    )}
+                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${colors.dot}`} />
+                    {!isLast && <div className={`w-px flex-1 mt-1 ${colors.line}`} />}
                   </div>
-
                   <div className="flex-1 min-w-0 -mt-0.5">
-                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                      <span
-                        className={`inline-block text-[10px] font-medium px-1.5 py-0.5 rounded capitalize ${colors.bg} ${colors.text}`}
-                      >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-semibold px-2 py-0.5 capitalize ${colors.bg} ${colors.text}`}>
                         {typeLabel(event.type)}
                       </span>
-                      <span className="text-[10px] text-text-secondary font-mono">
-                        {formatTime(event.timestamp)}
-                      </span>
+                      <span className="text-xs text-text-muted">{formatTime(event.timestamp)}</span>
                     </div>
-                    <p className="text-[12px] text-text-primary/80 leading-relaxed">
-                      {event.summary}
-                    </p>
+                    <p className="text-sm text-text-primary leading-relaxed">{event.summary}</p>
                   </div>
                 </div>
               )

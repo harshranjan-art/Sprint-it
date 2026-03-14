@@ -17,36 +17,22 @@ import ActivityFeed from '../components/ActivityFeed'
 import PipelineOverlay from '../components/PipelineOverlay'
 import { runFullPipeline } from '../services/pipelineRunner'
 
-const statusStyles = {
-  pending: { badge: 'bg-white/5 text-text-secondary', dot: 'bg-white/20' },
-  active: { badge: 'bg-amber/10 text-amber', dot: 'bg-amber' },
-  complete: { badge: 'bg-emerald-500/10 text-emerald-400', dot: 'bg-emerald-400' },
+const statusLabels = { pending: 'Pending', active: 'Running', complete: 'Done' }
+const statusColors = {
+  pending: 'bg-neutral-100 text-neutral-500',
+  active: 'bg-gold/20 text-amber-700',
+  complete: 'bg-green-50 text-green-700',
 }
-
-const statusLabels = { pending: 'Pending', active: 'Running', complete: 'Complete' }
-
-const accentColors = ['border-t-teal-500', 'border-t-purple', 'border-t-amber', 'border-t-blue-400']
 
 function AnimatedNumber({ value }) {
   const display = useCountUp(value)
   return <>{display}</>
 }
 
-function Skeleton({ className = '' }) {
-  return <div className={`skeleton ${className}`} />
-}
-
 export default function Dashboard() {
   const {
-    pipelineStatus,
-    feedbackData,
-    analysisResults,
-    generatedDocs,
-    teamAssignments,
-    eventLog,
-    updateState,
-    updatePipelineStatus,
-    addEvent,
+    pipelineStatus, feedbackData, analysisResults, generatedDocs,
+    teamAssignments, eventLog, updateState, updatePipelineStatus, addEvent,
   } = useAppContext()
   const navigate = useNavigate()
   const { addToast } = useToast()
@@ -68,66 +54,25 @@ export default function Dashboard() {
 
   const docCount = useMemo(() => {
     let count = 0
-    Object.values(generatedDocs).forEach((featureDocs) => {
-      if (featureDocs && typeof featureDocs === 'object') {
-        count += Object.keys(featureDocs).length
-      }
+    Object.values(generatedDocs).forEach((fd) => {
+      if (fd && typeof fd === 'object') count += Object.keys(fd).length
     })
     return count
   }, [generatedDocs])
 
-  const docTypes = useMemo(() => {
-    const types = new Set()
-    Object.values(generatedDocs).forEach((featureDocs) => {
-      if (featureDocs && typeof featureDocs === 'object') {
-        Object.keys(featureDocs).forEach((t) => types.add(t))
-      }
-    })
-    return Array.from(types)
-  }, [generatedDocs])
-
   const timeSaved = useMemo(() => {
-    const firstDataEvent = eventLog.find((e) => e.type === 'data_ingested')
-    const lastAssignEvent = [...eventLog].reverse().find((e) => e.type === 'task_assigned')
-    if (!firstDataEvent || !lastAssignEvent) return null
-    const ms = new Date(lastAssignEvent.timestamp) - new Date(firstDataEvent.timestamp)
-    const secs = Math.round(ms / 1000)
-    const mins = Math.floor(secs / 60)
-    const remSecs = secs % 60
-    return `${mins}m ${remSecs}s`
+    const first = eventLog.find((e) => e.type === 'data_ingested')
+    const last = [...eventLog].reverse().find((e) => e.type === 'task_assigned')
+    if (!first || !last) return null
+    const secs = Math.round((new Date(last.timestamp) - new Date(first.timestamp)) / 1000)
+    return `${Math.floor(secs / 60)}m ${secs % 60}s`
   }, [eventLog])
 
   const stages = [
-    {
-      title: 'Data Ingested',
-      icon: Database,
-      stageKey: 'ingest',
-      stat: feedbackData.length,
-      detail: feedbackData.length > 0 ? `${feedbackData.length} entries loaded` : 'No data yet',
-    },
-    {
-      title: 'Themes Found',
-      icon: Lightbulb,
-      stageKey: 'analysis',
-      stat: themes.length,
-      detail: themes.length > 0 ? themes[0]?.name : 'Run analysis to discover',
-    },
-    {
-      title: 'Docs Generated',
-      icon: FileText,
-      stageKey: 'docs',
-      stat: docCount,
-      detail: docTypes.length > 0 ? docTypes.map((t) => t.toUpperCase()).join(', ') : 'No docs yet',
-    },
-    {
-      title: 'Tasks Assigned',
-      icon: CheckCircle2,
-      stageKey: 'assign',
-      stat: teamAssignments.length,
-      detail: teamAssignments.length > 0
-        ? teamAssignments.map((a) => a.assignee).join(', ')
-        : 'No assignments yet',
-    },
+    { title: 'Data Ingested', icon: Database, stageKey: 'ingest', stat: feedbackData.length },
+    { title: 'Themes Found', icon: Lightbulb, stageKey: 'analysis', stat: themes.length },
+    { title: 'Docs Generated', icon: FileText, stageKey: 'docs', stat: docCount },
+    { title: 'Tasks Assigned', icon: CheckCircle2, stageKey: 'assign', stat: teamAssignments.length },
   ]
 
   const handleRunPipeline = useCallback(async () => {
@@ -135,13 +80,10 @@ export default function Dashboard() {
     setPipelineStep(0)
     setPipelineError(null)
     setElapsed(0)
-
     try {
       await runFullPipeline(
         (step) => setPipelineStep(step),
-        addEvent,
-        updateState,
-        updatePipelineStatus
+        addEvent, updateState, updatePipelineStatus
       )
       addToast('Full pipeline complete!', 'success')
     } catch (err) {
@@ -155,121 +97,121 @@ export default function Dashboard() {
   const allComplete = Object.values(pipelineStatus).every((s) => s === 'complete')
 
   return (
-    <div data-testid="dashboard-page" className="space-y-5">
+    <div className="space-y-10">
       {pipelineRunning && (
         <PipelineOverlay step={pipelineStep} elapsed={elapsed} error={pipelineError} />
       )}
 
-      <div className="bg-bg-card rounded-xl border border-border p-7 card-glow animate-[fadeIn_0.3s_ease-out]">
-        <div className="max-w-2xl">
-          <h1 className="text-xl font-bold text-text-primary mb-1 tracking-tight">Welcome to Sprint It</h1>
-          <p className="text-[13px] text-text-secondary mb-5 leading-relaxed">
-            Your AI product management agent — ingests data, discovers themes, decides what to build,
-            writes specs, and assigns work.
-          </p>
+      {/* ── HERO — bold statement like DeFAI ── */}
+      <div className="text-center py-10 max-md:py-6 animate-[fadeIn_0.4s_ease-out]">
+        <div className="flex justify-center mb-6">
+          <img src="/logo.png" alt="Sprint It" className="w-16 h-16 rounded-xl" />
+        </div>
+        <h1 className="text-5xl max-md:text-3xl font-black tracking-tight leading-tight text-black mb-4">
+          <span className="text-purple">40 HOURS</span> OF PM WORK.
+          <br />
+          <span className="bg-gold text-black px-3 py-1 inline-block mt-1">90 SECONDS.</span>
+        </h1>
+        <p className="text-lg text-text-secondary max-w-xl mx-auto mb-8">
+          Your entire product cycle, on autopilot — from feedback to shipped, without the meetings.
+        </p>
+        <div className="flex items-center justify-center gap-3">
           <button
-            data-testid="run-pipeline-btn"
             onClick={handleRunPipeline}
             disabled={pipelineRunning || allComplete}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-lg bg-purple text-white text-[13px] font-semibold hover:bg-purple/90 transition-all disabled:opacity-40 glow-btn mb-3"
+            className="flex items-center gap-2 px-8 py-3.5 bg-purple text-white text-sm font-bold uppercase tracking-wider rounded-none hover:bg-purple/90 transition-colors disabled:opacity-40"
           >
-            <Sparkles size={16} />
-            {allComplete ? 'Pipeline Complete' : pipelineRunning ? 'Running...' : 'Run Full Pipeline'}
-            {!allComplete && !pipelineRunning && <ArrowRight size={14} />}
+            <Sparkles size={18} />
+            {allComplete ? 'PIPELINE COMPLETE' : pipelineRunning ? 'RUNNING...' : 'RUN FULL PIPELINE'}
           </button>
-          <p className="text-[11px] text-text-secondary/50 font-mono">
-            Ingest &rarr; Themes &rarr; Build &rarr; Specs &rarr; Assign
-          </p>
+          {!allComplete && !pipelineRunning && (
+            <button
+              onClick={() => navigate('/ingest')}
+              className="px-8 py-3.5 bg-black text-white text-sm font-bold uppercase tracking-wider rounded-none hover:bg-black/80 transition-colors"
+            >
+              STEP BY STEP
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-4 max-md:grid-cols-2 gap-3">
-        {stages.map(({ title, icon: Icon, stageKey, stat, detail }, i) => {
+      {/* ── Pipeline Status — 4 bold stat cards ── */}
+      <div className="grid grid-cols-4 max-md:grid-cols-2 gap-4">
+        {stages.map(({ title, icon: Icon, stageKey, stat }, i) => {
           const status = pipelineStatus[stageKey]
-          const styles = statusStyles[status]
           return (
             <div
               key={stageKey}
-              data-testid={`stage-card-${stageKey}`}
-              className={`bg-bg-card rounded-xl border border-border border-t-2 ${accentColors[i]} p-4 card-glow animate-[fadeIn_0.3s_ease-out] stagger-${i + 1}`}
+              className={`border-2 border-black p-5 animate-[fadeIn_0.3s_ease-out] stagger-${i + 1}`}
               style={{ animationFillMode: 'both' }}
             >
-              <div className="flex items-center justify-between mb-2.5">
-                <Icon size={18} className="text-text-secondary" />
-                <span className={`inline-flex items-center gap-1 text-[9px] font-medium px-1.5 py-0.5 rounded-md ${styles.badge}`}>
-                  <span className={`w-1 h-1 rounded-full ${styles.dot}`} />
+              <div className="flex items-center justify-between mb-3">
+                <Icon size={20} className="text-purple" />
+                <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 ${statusColors[status]}`}>
                   {statusLabels[status]}
                 </span>
               </div>
-              <p className="text-xl font-bold text-text-primary mb-0.5 font-mono">
+              <p className="text-4xl font-black text-black">
                 <AnimatedNumber value={stat} />
               </p>
-              <p className="text-[11px] text-text-secondary">{title}</p>
-              <p className="text-[10px] text-text-secondary/50 mt-0.5 truncate">{detail}</p>
+              <p className="text-sm font-medium text-text-secondary mt-1">{title}</p>
             </div>
           )
         })}
       </div>
 
-      <div className="flex gap-5 max-md:flex-col">
+      {/* ── Two columns: Top Recommendation + Activity Feed ── */}
+      <div className="flex gap-6 max-md:flex-col">
         <div className="w-[55%] max-md:w-full">
           {topRec ? (
-            <div className="bg-bg-card rounded-xl border border-border p-5 card-glow h-full animate-[fadeIn_0.3s_ease-out]">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[13px] font-semibold text-text-primary">Top Recommendation</h2>
-                <span className="text-[10px] font-medium px-2 py-0.5 rounded-md bg-purple/10 text-purple">
-                  #{topRec.rank || 1} Priority
+            <div className="border-2 border-black p-6 h-full">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-text-secondary">Top Recommendation</h2>
+                <span className="bg-purple text-white text-xs font-bold px-2.5 py-1">
+                  #{topRec.rank || 1}
                 </span>
               </div>
-              <h3 className="text-base font-semibold text-text-primary mb-1.5">{topRec.feature_name}</h3>
-              <p className="text-[13px] text-text-secondary leading-relaxed mb-3">{topRec.description}</p>
+              <h3 className="text-xl font-black text-black mb-2">{topRec.feature_name}</h3>
+              <p className="text-sm text-text-secondary leading-relaxed mb-4">{topRec.description}</p>
 
-              <div className="space-y-1.5 mb-4">
+              <div className="space-y-2 mb-5">
                 {[
                   { label: 'User Impact', value: topRec.user_impact },
                   { label: 'Revenue', value: topRec.revenue_impact },
                   { label: 'Strategic', value: topRec.strategic_alignment },
                 ].map(({ label, value }) => (
-                  <div key={label} className="flex items-center gap-2">
-                    <span className="text-[10px] text-text-secondary w-16">{label}</span>
-                    <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+                  <div key={label} className="flex items-center gap-3">
+                    <span className="text-xs font-medium text-text-secondary w-20">{label}</span>
+                    <div className="flex-1 h-2 bg-neutral-100 overflow-hidden">
                       <div
-                        className="h-full bg-purple rounded-full transition-all duration-500 shadow-[0_0_4px_rgba(139,124,246,0.3)]"
+                        className="h-full bg-purple transition-all duration-500"
                         style={{ width: `${(value / 10) * 100}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-medium w-5 text-right font-mono">{value}</span>
+                    <span className="text-xs font-bold w-5 text-right">{value}</span>
                   </div>
                 ))}
               </div>
 
-              {topRec.rationale && (
-                <p className="text-[11px] text-text-secondary leading-relaxed border-t border-border pt-3 mb-3">
-                  {topRec.rationale}
-                </p>
-              )}
-
               <button
-                data-testid="view-analysis-link"
                 onClick={() => navigate('/analysis')}
-                className="flex items-center gap-1.5 text-[13px] font-medium text-purple hover:text-purple/80 transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-purple hover:text-purple/70 transition-colors uppercase tracking-wider"
               >
-                View Details <ArrowRight size={13} />
+                View Details <ArrowRight size={16} />
               </button>
             </div>
           ) : (
-            <div className="bg-bg-card rounded-xl border border-border p-5 card-glow h-full flex flex-col items-center justify-center text-center">
-              <Lightbulb size={28} className="text-text-secondary/15 mb-3" />
-              <h3 className="text-[13px] font-semibold text-text-primary mb-1">No Recommendations Yet</h3>
-              <p className="text-[11px] text-text-secondary mb-3">
-                Run the full pipeline or complete analysis to see what to build next.
+            <div className="border-2 border-neutral-200 border-dashed p-8 h-full flex flex-col items-center justify-center text-center">
+              <Lightbulb size={32} className="text-neutral-300 mb-3" />
+              <h3 className="text-sm font-bold text-black mb-1">No Recommendations Yet</h3>
+              <p className="text-sm text-text-secondary mb-4">
+                Run the pipeline to see what to build next.
               </p>
               <button
-                data-testid="start-ingest-link"
                 onClick={() => navigate('/ingest')}
-                className="flex items-center gap-1.5 text-[13px] font-medium text-purple hover:text-purple/80 transition-colors"
+                className="text-sm font-bold text-purple uppercase tracking-wider"
               >
-                Start with Ingest Data <ArrowRight size={13} />
+                Get Started <ArrowRight size={14} className="inline ml-1" />
               </button>
             </div>
           )}
@@ -280,23 +222,21 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ── Time Saved ── */}
       {timeSaved && (
-        <div className="bg-purple/10 border border-purple/20 rounded-xl p-5 animate-[fadeIn_0.3s_ease-out]">
+        <div className="bg-gold p-6 flex items-center justify-between animate-[fadeIn_0.3s_ease-out]">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-purple/20 border border-purple/30 flex items-center justify-center">
-              <Zap size={20} className="text-purple" />
-            </div>
+            <Zap size={24} className="text-black" />
             <div>
-              <h3 className="text-base font-semibold text-text-primary">Time Saved</h3>
-              <p className="text-[13px] text-text-secondary">
-                This analysis would take a PM team ~40 hours. Sprint It did it in{' '}
-                <span className="font-bold text-purple font-mono">{timeSaved}</span>.
+              <p className="text-sm font-black uppercase tracking-wider text-black">Time Saved</p>
+              <p className="text-sm text-black/70">
+                A PM team takes ~40 hours. Sprint It did it in <span className="font-black">{timeSaved}</span>.
               </p>
             </div>
-            <div className="ml-auto flex items-center gap-2">
-              <Clock size={14} className="text-text-secondary" />
-              <span className="text-xl font-bold text-purple font-mono">{timeSaved}</span>
-            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock size={16} className="text-black/50" />
+            <span className="text-3xl font-black text-black">{timeSaved}</span>
           </div>
         </div>
       )}

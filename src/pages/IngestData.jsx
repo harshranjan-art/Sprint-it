@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PageHeader from '../components/PageHeader'
 import {
   Upload,
   FileText,
@@ -315,7 +316,8 @@ export default function IngestData() {
   }
 
   return (
-    <div data-testid="ingest-page" className="space-y-5">
+    <div data-testid="ingest-page" className="space-y-6">
+      <PageHeader title="Ingest Data" tagline="Every customer signal, one drag away" />
       <div className="grid grid-cols-2 max-md:grid-cols-1 gap-5">
 
         <div className="bg-bg-card rounded-xl border border-border p-5 card-glow">

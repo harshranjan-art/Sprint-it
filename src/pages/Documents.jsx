@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import PageHeader from '../components/PageHeader'
 import remarkGfm from 'remark-gfm'
 import {
   FileText,
@@ -226,7 +227,8 @@ export default function Documents() {
   }
 
   return (
-    <div data-testid="documents-page" className="space-y-5">
+    <div data-testid="documents-page" className="space-y-6">
+      <PageHeader title="Documents" tagline="One click. Full spec. Actually good." />
       <div>
         <h2 className="text-[13px] font-medium text-text-secondary mb-2.5">Select a feature to generate documents for</h2>
         <div className="flex gap-2.5">

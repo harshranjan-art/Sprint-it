@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PageHeader from '../components/PageHeader'
 import {
   Loader2,
   Sparkles,
@@ -393,6 +394,7 @@ export default function Assignments() {
 
   return (
     <div data-testid="assignments-page" className="space-y-7">
+      <PageHeader title="Assignments" tagline="Right engineer. Right task. Auto-assigned to Linear." />
       <div>
         <div className="flex items-center justify-between mb-3">
           <div>

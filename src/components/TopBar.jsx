@@ -1,51 +1,129 @@
+import { NavLink } from 'react-router-dom'
+import { useState } from 'react'
+import {
+  LayoutDashboard,
+  Upload,
+  Brain,
+  FileText,
+  Users,
+  CheckCircle2,
+  Menu,
+  X,
+} from 'lucide-react'
 import { useAppContext } from '../context/AppContext'
 
-const pipelineSteps = [
-  { key: 'ingest', label: 'Ingest' },
-  { key: 'analysis', label: 'Analysis' },
-  { key: 'docs', label: 'Docs' },
-  { key: 'assign', label: 'Assign' },
+const navItems = [
+  { to: '/', label: 'Dashboard', icon: LayoutDashboard, stageKey: null },
+  { to: '/ingest', label: 'Ingest', icon: Upload, stageKey: 'ingest' },
+  { to: '/analysis', label: 'Analysis', icon: Brain, stageKey: 'analysis' },
+  { to: '/documents', label: 'Docs', icon: FileText, stageKey: 'docs' },
+  { to: '/assignments', label: 'Assign', icon: Users, stageKey: 'assign' },
 ]
 
-export default function TopBar({ title }) {
+const connectedTools = [
+  { name: 'Unsiloed', envKey: 'VITE_UNSILOED_KEY' },
+  { name: 'Crustdata', envKey: 'VITE_CRUSTDATA_KEY' },
+  { name: 'S2', envKey: 'VITE_S2_TOKEN' },
+]
+
+function isKeyConfigured(envKey) {
+  const value = import.meta.env[envKey]
+  return !!value && !value.startsWith('your_')
+}
+
+export default function TopBar() {
   const { pipelineStatus } = useAppContext()
+  const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
-    <div data-testid="top-bar" className="flex items-center justify-between px-8 py-4 border-b border-border bg-bg-card/50 backdrop-blur-sm">
-      <h1 className="text-lg font-semibold text-text-primary tracking-tight">{title}</h1>
+    <>
+      <header className="sticky top-0 z-50 bg-white border-b-2 border-black">
+        <div className="max-w-[1280px] mx-auto px-6 flex items-center justify-between h-14">
+          {/* Logo */}
+          <NavLink to="/" className="flex items-center gap-2.5 shrink-0">
+            <img src="/logo.png" alt="Sprint It" className="w-8 h-8 rounded" />
+            <span className="text-lg font-bold tracking-tight text-black">SPRINT IT</span>
+          </NavLink>
 
-      <div className="flex items-center gap-1.5">
-        {pipelineSteps.map((step, i) => {
-          const status = pipelineStatus[step.key]
-          return (
-            <div key={step.key} className="flex items-center">
-              <div className="flex flex-col items-center">
-                <div
-                  data-testid={`pipeline-dot-${step.key}`}
-                  className={`w-2.5 h-2.5 rounded-full border-[1.5px] transition-all ${
-                    status === 'complete'
-                      ? 'bg-purple border-purple shadow-[0_0_6px_rgba(139,124,246,0.5)]'
-                      : status === 'active'
-                        ? 'bg-amber border-amber shadow-[0_0_6px_rgba(251,191,36,0.5)]'
-                        : 'bg-transparent border-white/15'
-                  }`}
-                />
-                <span className="text-[9px] text-text-secondary mt-1 font-medium">{step.label}</span>
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-1">
+            {navItems.map(({ to, label, icon: Icon, stageKey }) => {
+              const isComplete = stageKey && pipelineStatus[stageKey] === 'complete'
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/'}
+                  className={({ isActive }) =>
+                    `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-semibold transition-colors ${
+                      isActive
+                        ? 'bg-purple text-white'
+                        : 'text-black hover:bg-neutral-100'
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon size={16} strokeWidth={2} />
+                      <span>{label}</span>
+                      {isComplete && !isActive && (
+                        <CheckCircle2 size={14} className="text-green-600" />
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              )
+            })}
+          </nav>
+
+          {/* Right side: connection dots */}
+          <div className="hidden md:flex items-center gap-3">
+            {connectedTools.map(({ name, envKey }) => (
+              <div key={name} className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                <div className={`w-2 h-2 rounded-full ${isKeyConfigured(envKey) ? 'bg-green-500' : 'bg-neutral-300'}`} />
+                {name}
               </div>
-              {i < pipelineSteps.length - 1 && (
-                <div
-                  className={`w-6 h-px mb-3.5 mx-0.5 ${
-                    pipelineStatus[pipelineSteps[i + 1].key] === 'complete' ||
-                    pipelineStatus[step.key] === 'complete'
-                      ? 'bg-purple/40'
-                      : 'bg-white/6'
-                  }`}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
+            ))}
+          </div>
+
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 text-black"
+          >
+            {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
+        </div>
+
+        {/* Mobile nav dropdown */}
+        {mobileOpen && (
+          <div className="md:hidden border-t border-neutral-200 bg-white px-4 py-3 space-y-1">
+            {navItems.map(({ to, label, icon: Icon, stageKey }) => {
+              const isComplete = stageKey && pipelineStatus[stageKey] === 'complete'
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={to === '/'}
+                  onClick={() => setMobileOpen(false)}
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2.5 rounded-md text-sm font-semibold ${
+                      isActive ? 'bg-purple text-white' : 'text-black'
+                    }`
+                  }
+                >
+                  <Icon size={18} />
+                  <span>{label}</span>
+                  {isComplete && <CheckCircle2 size={14} className="text-green-600 ml-auto" />}
+                </NavLink>
+              )
+            })}
+          </div>
+        )}
+      </header>
+
+      {/* Purple accent line under nav — like the DeFAI purple bar */}
+      <div className="h-1 bg-purple w-full" />
+    </>
   )
 }

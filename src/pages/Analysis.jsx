@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import PageHeader from '../components/PageHeader'
 import {
   Play,
   ChevronDown,
@@ -489,7 +490,8 @@ export default function Analysis() {
   }
 
   return (
-    <div data-testid="analysis-page" className="space-y-5">
+    <div data-testid="analysis-page" className="space-y-6">
+      <PageHeader title="Analysis" tagline="Your customers already told you what to build. We found it." />
       <div className="bg-bg-card rounded-xl border border-border p-5 card-glow">
         <div className="flex items-center justify-between mb-3">
           <div>
