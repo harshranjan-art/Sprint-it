@@ -2,18 +2,12 @@ const GROQ_KEY = () => import.meta.env.VITE_GROQ_KEY
 const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
 function safeParseJSON(text) {
-  // Strip markdown code fences if present
   let cleaned = text.trim()
   cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-  // Try to find the JSON object or array
   const objMatch = cleaned.match(/\{[\s\S]*\}/)
-  if (objMatch) {
-    return JSON.parse(objMatch[0])
-  }
+  if (objMatch) return JSON.parse(objMatch[0])
   const arrMatch = cleaned.match(/\[[\s\S]*\]/)
-  if (arrMatch) {
-    return JSON.parse(arrMatch[0])
-  }
+  if (arrMatch) return JSON.parse(arrMatch[0])
   return JSON.parse(cleaned)
 }
 
@@ -31,7 +25,7 @@ async function callLLM(systemPrompt, userMessage) {
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
-      max_tokens: 8192,
+      max_tokens: 4096,
       temperature: 0.7,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -50,101 +44,153 @@ async function callLLM(systemPrompt, userMessage) {
   return safeParseJSON(text)
 }
 
+// ─── Condense feedback to fit within token limits ───────────────────────────
+
+function condenseFeedback(feedbackData) {
+  // Group by category, count sentiments/segments, pick representative quotes
+  const byCategory = {}
+  feedbackData.forEach((entry) => {
+    const cat = entry.category || 'other'
+    if (!byCategory[cat]) {
+      byCategory[cat] = { count: 0, sentiments: {}, segments: {}, sources: {}, quotes: [] }
+    }
+    const g = byCategory[cat]
+    g.count++
+    g.sentiments[entry.sentiment] = (g.sentiments[entry.sentiment] || 0) + 1
+    g.segments[entry.customer_segment] = (g.segments[entry.customer_segment] || 0) + 1
+    g.sources[entry.source] = (g.sources[entry.source] || 0) + 1
+    // Keep up to 8 diverse quotes per category
+    if (g.quotes.length < 8) {
+      g.quotes.push(entry.feedback_text)
+    }
+  })
+
+  const totalCount = feedbackData.length
+  const overallSentiment = {}
+  const overallSegment = {}
+  feedbackData.forEach((e) => {
+    overallSentiment[e.sentiment] = (overallSentiment[e.sentiment] || 0) + 1
+    overallSegment[e.customer_segment] = (overallSegment[e.customer_segment] || 0) + 1
+  })
+
+  let summary = `FEEDBACK SUMMARY (${totalCount} total entries)\n`
+  summary += `Overall sentiment: ${JSON.stringify(overallSentiment)}\n`
+  summary += `Segments: ${JSON.stringify(overallSegment)}\n\n`
+
+  for (const [cat, data] of Object.entries(byCategory)) {
+    summary += `--- ${cat.toUpperCase()} (${data.count} entries) ---\n`
+    summary += `Sentiments: ${JSON.stringify(data.sentiments)}\n`
+    summary += `Segments: ${JSON.stringify(data.segments)}\n`
+    summary += `Sources: ${JSON.stringify(data.sources)}\n`
+    summary += `Representative quotes:\n`
+    data.quotes.forEach((q) => { summary += `  - "${q}"\n` })
+    summary += '\n'
+  }
+
+  return summary
+}
+
 // ─── Call 1: Theme Discovery ────────────────────────────────────────────────
 
 export async function discoverThemes(feedbackData) {
-  const systemPrompt = `You are Sprint It, an AI product management agent. You're analyzing customer feedback to discover the most important themes and pain points.
+  const systemPrompt = `You are Sprint It, an AI product management agent analyzing customer feedback to discover themes and pain points.
 
-Analyze ALL the feedback entries provided. For each theme you discover:
-1. Give it a clear, actionable name (not vague like "usability issues" — specific like "Onboarding flow causes drop-off in first 5 minutes")
-2. Count how many entries relate to this theme
+For each theme:
+1. Give it a clear, actionable name (specific, not vague)
+2. Count how many entries relate to it (estimate from the provided counts)
 3. Assess severity based on language intensity and segment impact
 4. Pull exact quotes as evidence
 
-Return ONLY valid JSON, no markdown fences, no preamble:
+Return ONLY valid JSON:
 {
   "themes": [{
     "name": string,
-    "description": string (2-3 sentences explaining the problem),
-    "frequency": number (how many entries mention this),
+    "description": string (2-3 sentences),
+    "frequency": number,
     "severity": "critical" | "high" | "medium" | "low",
-    "segments_affected": string[] (which customer segments),
-    "representative_quotes": string[] (max 3, exact text from entries),
+    "segments_affected": string[],
+    "representative_quotes": string[] (max 3),
     "category": "feature_gap" | "bug" | "ux_friction" | "competitive_pressure" | "praise",
     "estimated_revenue_impact": "high" | "medium" | "low"
   }]
 }`
 
-  const userMessage = `Here are ${feedbackData.length} customer feedback entries to analyze:\n\n${JSON.stringify(feedbackData, null, 2)}`
-
-  return callLLM(systemPrompt, userMessage)
+  const condensed = condenseFeedback(feedbackData)
+  return callLLM(systemPrompt, condensed)
 }
 
 // ─── Call 2: Competitive Gap Analysis ───────────────────────────────────────
 
 export async function analyzeGaps(themes, competitorData) {
-  const systemPrompt = `You are Sprint It, an AI product management agent. You're analyzing how our product (Sprint It — AI-native PM tool) compares to competitors based on customer feedback themes and competitor company data.
+  const systemPrompt = `You are Sprint It, an AI PM agent comparing our product (Sprint It — AI-native PM tool) to competitors.
 
-For each significant gap or opportunity:
-1. Identify the capability area
-2. Assess where we stand vs each competitor
-3. Rate the strategic opportunity
+For each gap/opportunity, identify the capability area, assess our status vs competitors, and rate the opportunity.
 
-Return ONLY valid JSON, no markdown fences, no preamble:
+Return ONLY valid JSON:
 {
   "gaps": [{
-    "area": string (the capability),
+    "area": string,
     "our_status": "strong" | "building" | "weak" | "missing",
     "competitors": [{ "name": string, "status": string }],
     "opportunity": "high" | "medium" | "low",
-    "insight": string (1-2 sentences on what this means)
+    "insight": string (1-2 sentences)
   }],
-  "market_position": string (2-3 sentence summary of our position),
+  "market_position": string (2-3 sentences),
   "biggest_threat": string,
   "biggest_opportunity": string
 }`
 
-  const userMessage = `Themes discovered from customer feedback:\n${JSON.stringify(themes, null, 2)}\n\nCompetitor data:\n${JSON.stringify(competitorData, null, 2)}`
+  // Send only theme names/severity + compact competitor info
+  const themesSummary = themes.map((t) => ({
+    name: t.name,
+    severity: t.severity,
+    frequency: t.frequency,
+    category: t.category,
+  }))
+  const compSummary = competitorData.map((c) => ({
+    name: c.name,
+    domain: c.domain,
+    headcount: c.headcount,
+    funding: c.funding_total,
+    strength: c.strength,
+    weakness: c.weakness,
+  }))
 
+  const userMessage = `Themes:\n${JSON.stringify(themesSummary, null, 1)}\n\nCompetitors:\n${JSON.stringify(compSummary, null, 1)}`
   return callLLM(systemPrompt, userMessage)
 }
 
 // ─── Call 3: Prioritized Recommendations ────────────────────────────────────
 
 export async function generateRecommendations(themes, gaps, competitorData, weights) {
-  const systemPrompt = `You are Sprint It, an AI product management agent. Based on the customer feedback themes, competitive gaps, and market analysis, decide what should be built next.
+  const systemPrompt = `You are Sprint It, an AI PM agent deciding what to build next. Be decisive — state recommendations with conviction.
 
-You are making the actual product decision — not suggesting options for a human to pick from. State your recommendation with conviction and evidence. For each item, explain WHY it should be built and what happens if we don't build it.
+Weights: User Impact=${weights.userImpact}, Revenue=${weights.revenueImpact}, Effort(inverse)=${weights.effort}, Strategic=${weights.strategicAlignment}.
+Score = (user_impact*${weights.userImpact} + revenue_impact*${weights.revenueImpact} + (10-effort)*${weights.effort} + strategic_alignment*${weights.strategicAlignment}) / ${weights.userImpact + weights.revenueImpact + weights.effort + weights.strategicAlignment} * 10, rounded to 1 decimal.
 
-Priority scoring weights (0-100, provided by the PM):
-- User Impact: ${weights.userImpact}
-- Revenue Impact: ${weights.revenueImpact}
-- Effort (inverse — lower effort scores higher): ${weights.effort}
-- Strategic Alignment: ${weights.strategicAlignment}
-
-Compute priority_score as: (user_impact * ${weights.userImpact} + revenue_impact * ${weights.revenueImpact} + (10 - effort) * ${weights.effort} + strategic_alignment * ${weights.strategicAlignment}) / ${weights.userImpact + weights.revenueImpact + weights.effort + weights.strategicAlignment} * 10, rounded to 1 decimal.
-
-Return ONLY valid JSON, no markdown fences, no preamble:
+Return ONLY valid JSON:
 {
   "recommendations": [{
     "rank": number,
     "feature_name": string,
-    "description": string (what to build, specifically),
-    "rationale": string (why this, why now — cite specific evidence),
+    "description": string,
+    "rationale": string,
     "user_impact": number (1-10),
     "revenue_impact": number (1-10),
-    "effort": number (1-10, higher = more effort),
+    "effort": number (1-10),
     "strategic_alignment": number (1-10),
-    "priority_score": number (computed weighted score),
+    "priority_score": number,
     "target_segment": string,
-    "evidence": string[] (specific customer quotes or data points),
-    "competitive_context": string (what competitors are doing here),
-    "risk_if_delayed": string (what happens if we don't build this)
+    "evidence": string[] (max 3 quotes),
+    "competitive_context": string,
+    "risk_if_delayed": string
   }],
-  "summary": string (2-3 sentence executive summary of the strategy)
+  "summary": string (2-3 sentence strategy)
 }`
 
-  const userMessage = `Themes:\n${JSON.stringify(themes, null, 2)}\n\nCompetitive gaps:\n${JSON.stringify(gaps, null, 2)}\n\nCompetitor data:\n${JSON.stringify(competitorData, null, 2)}\n\nWeights: ${JSON.stringify(weights)}`
+  const themesSummary = themes.map((t) => ({ name: t.name, severity: t.severity, frequency: t.frequency, category: t.category }))
+  const gapsSummary = gaps.map((g) => ({ area: g.area, our_status: g.our_status, opportunity: g.opportunity }))
 
+  const userMessage = `Themes:\n${JSON.stringify(themesSummary, null, 1)}\n\nGaps:\n${JSON.stringify(gapsSummary, null, 1)}\n\nCompetitors: ${competitorData.map((c) => c.name).join(', ')}`
   return callLLM(systemPrompt, userMessage)
 }

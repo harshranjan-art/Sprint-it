@@ -15,7 +15,7 @@ async function callLLMMarkdown(systemPrompt, userMessage) {
     },
     body: JSON.stringify({
       model: GROQ_MODEL,
-      max_tokens: 8192,
+      max_tokens: 4096,
       temperature: 0.7,
       messages: [
         { role: 'system', content: systemPrompt },
@@ -34,14 +34,24 @@ async function callLLMMarkdown(systemPrompt, userMessage) {
 }
 
 function buildUserMessage(recommendation, themes, gaps) {
+  // Compact: only send essential fields to stay within token limits
+  const rec = {
+    feature_name: recommendation.feature_name,
+    description: recommendation.description,
+    rationale: recommendation.rationale,
+    target_segment: recommendation.target_segment,
+    evidence: (recommendation.evidence || []).slice(0, 3),
+    competitive_context: recommendation.competitive_context,
+  }
+  const themeNames = (themes || []).map((t) => `${t.name} (${t.severity}, ${t.frequency} mentions)`)
+  const gapAreas = (gaps || []).map((g) => `${g.area}: ${g.our_status} (opportunity: ${g.opportunity})`)
+
   return `Feature to document:
-${JSON.stringify(recommendation, null, 2)}
+${JSON.stringify(rec, null, 1)}
 
-Relevant themes from customer feedback analysis:
-${JSON.stringify(themes, null, 2)}
+Key themes: ${themeNames.join('; ')}
 
-Competitive gap analysis:
-${JSON.stringify(gaps, null, 2)}`
+Competitive gaps: ${gapAreas.join('; ')}`
 }
 
 // ─── PRD ────────────────────────────────────────────────────────────────────
